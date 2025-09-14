@@ -1,0 +1,62 @@
+{
+  "trap_configs": {
+    "小小火球术": {
+      "trap_type": "小小火球术",
+      "columns": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "positions": [],
+      "probability": 0.3,
+      "max_instances": 2
+    },
+    "不要回头": {
+      "trap_type": "不要回头",
+      "columns": [
+        7,
+        15
+      ],
+      "positions": [
+        3
+      ],
+      "probability": 1.0,
+      "max_instances": 2
+    },
+    "河..土地神": {
+      "trap_type": "河土地神",
+      "columns": [
+        8
+      ],
+      "positions": [
+        4
+      ],
+      "probability": 1.0,
+      "max_instances": 1
+    },
+    "花言巧语": {
+      "trap_type": "花言巧语",
+      "columns": [
+        12
+      ],
+      "positions": [
+        5
+      ],
+      "probability": 1.0,
+      "max_instances": 1
+    }
+  },
+  "generated_traps": {
+    "15_3": "不要回头",
+    "8_4": "花言巧语",
+    "12_5": "花言巧语",
+    "7_3": "不要回头",
+    "6_2": "小小火球术",
+    "5_2": "小小火球术",
+    "10_3": "不要回头",
+    "3_2": "小小火球术",
+    "13_3": "河..土地神",
+    "5_1": "不要回头"
+  }
+}

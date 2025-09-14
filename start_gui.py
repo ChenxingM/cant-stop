@@ -1,0 +1,40 @@
+"""
+GUI 启动器 - 修复版本
+"""
+
+import sys
+import os
+
+# 设置环境
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
+os.environ["QT_SCALE_FACTOR_ROUNDING_POLICY"] = "PassThrough"
+
+try:
+    from PySide6.QtWidgets import QApplication
+    from PySide6.QtCore import Qt
+
+    # 设置高DPI策略
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+
+    # 创建应用
+    app = QApplication(sys.argv)
+
+    # 导入GUI
+    from src.interfaces.gui import CantStopGUI
+
+    # 创建窗口
+    window = CantStopGUI()
+    window.show()
+
+    print("GUI 启动成功！")
+
+    # 运行
+    sys.exit(app.exec())
+
+except Exception as e:
+    print(f"启动失败: {e}")
+    import traceback
+    traceback.print_exc()
+    input("按回车键退出...")

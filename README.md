@@ -39,12 +39,23 @@ pip install -r requirements.txt
 
 #### CLI界面（推荐首次使用）
 ```bash
+# 方式一：使用批处理文件（Windows推荐）
+demo.bat                # 演示模式
+run_cli.bat             # CLI游戏
+
+# 方式二：命令行启动
+set PYTHONIOENCODING=utf-8              # Windows
 python main.py --interface cli --demo  # 演示模式
 python main.py --interface cli         # 正常游戏
 ```
 
 #### GUI界面
 ```bash
+# 方式一：使用批处理文件（Windows推荐）
+run_gui.bat             # GUI界面
+
+# 方式二：命令行启动
+set PYTHONIOENCODING=utf-8              # Windows
 python main.py --interface gui
 ```
 

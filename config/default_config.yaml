@@ -1,0 +1,103 @@
+# Can't Stop 游戏默认配置文件
+
+# 数据库配置
+database:
+  url: "sqlite:///cant_stop.db"
+  echo: false
+  pool_size: 10
+  max_overflow: 20
+
+# 游戏配置
+game:
+  # 基础设置
+  dice_cost: 10
+  max_temporary_markers: 3
+  win_condition_columns: 3
+
+  # 积分奖励设置
+  score_rewards:
+    草图: 20
+    精致小图: 80
+    精草大图: 100
+    精致大图: 150
+    超常发挥: 30
+    地图奖励: 10
+    遭遇事件: 5
+
+  # 道具设置
+  items:
+    丑喵玩偶:
+      price: 150
+      daily_use_limit: 3
+      effects:
+        - type: "score"
+          min: 3
+          max: 18
+          probability: 0.2
+        - type: "nothing"
+          probability: 0.8
+
+# QQ机器人配置 (可选)
+bot:
+  # 机器人基本设置
+  name: "Can't Stop 贪骰无厌"
+  admin_users: []
+  allowed_groups: []
+
+  # 消息设置
+  response_delay: 0.5
+  max_message_length: 2000
+  enable_mentions: true
+
+  # 指令前缀
+  command_prefixes: ["!", "/", ""]
+
+# 日志配置
+logging:
+  level: "INFO"
+  file: "logs/cant_stop.log"
+  max_size: "10MB"
+  backup_count: 5
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # 特定模块日志级别
+  loggers:
+    "src.core": "DEBUG"
+    "src.database": "INFO"
+    "src.services": "INFO"
+
+# 安全配置
+security:
+  max_sessions_per_user: 3
+  session_timeout_hours: 24
+  rate_limiting:
+    enabled: true
+    max_requests_per_minute: 30
+
+  # 数据备份
+  backup:
+    enabled: true
+    interval_hours: 6
+    max_backups: 10
+
+# 性能配置
+performance:
+  # 缓存设置
+  cache:
+    enabled: true
+    ttl_seconds: 300
+    max_entries: 1000
+
+  # 数据库优化
+  database_cleanup:
+    enabled: true
+    cleanup_interval_hours: 24
+    keep_completed_sessions_days: 7
+    keep_failed_sessions_days: 3
+
+# 开发模式设置
+development:
+  debug: false
+  mock_dice: false
+  test_mode: false
+  auto_checkin: false
