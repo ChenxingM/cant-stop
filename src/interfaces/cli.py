@@ -11,6 +11,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from src.services.game_service import GameService
+from src.config.config_manager import get_config
 
 
 class CantStopCLI:
@@ -32,7 +33,8 @@ class CantStopCLI:
 
     def show_help(self):
         """显示帮助信息"""
-        help_text = """
+        dice_cost = get_config("game_config", "game.dice_cost", 10)
+        help_text = f"""
 游戏指令帮助
 ================
 
@@ -71,7 +73,7 @@ regenerate_traps         - 重新生成陷阱位置
 
 游戏规则提示
 ===============
-- 每回合消耗10积分掷骰
+- 每回合消耗{dice_cost}积分掷骰
 - 将6个骰子分成两组，每组3个
 - 最多同时放置3个临时标记
 - 在3列登顶即可获胜

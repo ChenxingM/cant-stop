@@ -11,6 +11,7 @@ from ..models.game_models import (
     GameState, TurnState, Faction, EventType, MapEvent
 )
 from .trap_config import TrapConfigManager
+from ..config.config_manager import get_config
 
 
 class GameEngine:
@@ -32,12 +33,12 @@ class GameEngine:
 
         # 添加固定的道具和遭遇事件
         fixed_events = [
-            # 道具示例
-            {"column": 7, "position": 4, "type": EventType.ITEM, "name": "传送卷轴"},
-            {"column": 9, "position": 6, "type": EventType.ITEM, "name": "幸运符"},
-            # 遭遇事件
-            {"column": 13, "position": 5, "type": EventType.ENCOUNTER, "name": "神秘商人"},
-            {"column": 16, "position": 3, "type": EventType.ENCOUNTER, "name": "古老遗迹"},
+            # # 道具示例
+            # {"column": 7, "position": 4, "type": EventType.ITEM, "name": "传送卷轴"},
+            # {"column": 9, "position": 6, "type": EventType.ITEM, "name": "幸运符"},
+            # # 遭遇事件
+            # {"column": 13, "position": 5, "type": EventType.ENCOUNTER, "name": "神秘商人"},
+            # {"column": 16, "position": 3, "type": EventType.ENCOUNTER, "name": "古老遗迹"},
         ]
 
         for event_data in fixed_events:
@@ -169,7 +170,8 @@ class GameEngine:
             raise ValueError(f"玩家 {session.player_id} 不存在")
 
         # 检查积分是否足够
-        if not player.spend_score(10, "掷骰消耗"):
+        dice_cost = get_config("game_config", "game.dice_cost", 10)
+        if not player.spend_score(dice_cost, "掷骰消耗"):
             raise ValueError("积分不足，无法掷骰")
 
         # 检查是否有强制骰子结果
@@ -258,16 +260,21 @@ class GameEngine:
 
         moved_columns = []
 
+        # 统计每列需要移动的次数
+        column_moves = {}
         for column in target_columns:
+            column_moves[column] = column_moves.get(column, 0) + 1
+
+        for column, move_count in column_moves.items():
             existing_marker = session.get_temporary_marker(column)
             if existing_marker:
-                # 移动现有标记
-                existing_marker.position += 1
-                moved_columns.append(column)
+                # 移动现有标记，累加移动次数
+                existing_marker.position += move_count
+                moved_columns.extend([column] * move_count)  # 记录实际移动次数
             else:
-                # 添加新标记（临时标记位置从1开始，表示在永久进度基础上的相对位置）
-                if session.add_temporary_marker(column, 1):
-                    moved_columns.append(column)
+                # 添加新标记，位置为移动次数
+                if session.add_temporary_marker(column, move_count):
+                    moved_columns.extend([column] * move_count)
 
         session.turn_state = TurnState.DECISION
         session.first_turn = False
@@ -353,13 +360,14 @@ class GameEngine:
             session.turn_state = TurnState.ENDED
             # 设置下回合强制骰子结果
             session.forced_dice_result = [4, 5, 5, 5, 6, 6]
+            penalty_amount = get_config("game_config", "game.dice_cost", 10)
             original_score = player.current_score
-            player.add_score(-10, "陷阱惩罚")
+            player.add_score(-penalty_amount, "陷阱惩罚")
             actual_deduction = original_score - player.current_score
 
             penalty_msg = f"- 扣除{actual_deduction}积分"
-            if actual_deduction < 10:
-                penalty_msg += f"（不足10积分，仅扣除{actual_deduction}积分）"
+            if actual_deduction < penalty_amount:
+                penalty_msg += f"（不足{penalty_amount}积分，仅扣除{actual_deduction}积分）"
 
             return f"🕳️ 触发陷阱：小小火球术！\n📖 火球砸出的坑洞让你无处下脚。\n💬 \"为什么我的火球术不能骰出这种伤害啊?!!\"\n\n⚠️ 惩罚效果：\n- 停止一回合（仍需消耗回合积分）\n- 强制骰子结果：下回合掷骰自动变为 [4,5,5,5,6,6]\n{penalty_msg}"
 
@@ -376,7 +384,23 @@ class GameEngine:
             return f"🕳️ 触发陷阱：河..土地神！\n📖 ber得一声，你面前的空地冒出了一个白胡子小老头...\n💬 \"你掉的是这个金骰子还是这个银骰子?\"\n\n🎭 请选择你的回答（使用相应指令）：\n1. 都是我掉的\n2. 金骰子\n3. 银骰子\n4. 普通d6骰子\n5. 我没掉"
 
         elif event.name == "花言巧语":
-            return f"🕳️ 触发陷阱：花言巧语！\n📖 封锁道路的窗子。\n💬 \"停停，哪儿来的窗子。\"\n\n⚠️ 惩罚效果：\n- 请选择一个玩家\n- 强制该玩家下一轮不能在其当前轮次的列上行进\n- 被选中玩家可投掷1d6，投出6点则抵消惩罚"
+            # 获取所有玩家列表用于选择
+            from ..services.game_service import GameService
+            service = GameService()
+            success, players = service.get_all_players()
+
+            player_list_str = ""
+            if success and players:
+                player_list_str = "\n\n📋 选择一个玩家承受惩罚：\n"
+                for player_info in players:
+                    if player_info["player_id"] != session.player_id:  # 不显示当前玩家
+                        player_list_str += f"{player_info['id']}. {player_info['username']} ({player_info['faction']})\n"
+
+                player_list_str += "\n💡 请输入对应数字选择玩家（如：1）"
+            else:
+                player_list_str = "\n\n⚠️ 没有找到其他玩家，惩罚效果无法生效"
+
+            return f"🕳️ 触发陷阱：花言巧语！\n📖 封锁道路的窗子。\n💬 \"停停，哪儿来的窗子。\"\n\n⚠️ 惩罚效果：\n- 请选择一个玩家\n- 强制该玩家下一轮不能在其当前轮次的列上行进\n- 被选中玩家可投掷1d6，投出6点则抵消惩罚{player_list_str}"
 
         return f"🕳️ 触发未知陷阱：{event.name}"
 

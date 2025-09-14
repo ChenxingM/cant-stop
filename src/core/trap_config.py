@@ -22,7 +22,7 @@ class TrapPositionConfig:
 class TrapConfigManager:
     """陷阱配置管理器"""
 
-    def __init__(self, config_file: str = "trap_config.json"):
+    def __init__(self, config_file: str = "config/trap_config.json"):
         self.config_file = config_file
         self.trap_configs: Dict[str, TrapPositionConfig] = {}
         self.generated_traps: Dict[str, str] = {}  # position_key -> trap_name

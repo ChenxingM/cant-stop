@@ -81,6 +81,13 @@ class MessageProcessor:
             "普通d6骰子": self._handle_trap_choice,
             "我没掉": self._handle_trap_choice,
 
+            # 花言巧语陷阱相关
+            "玩家列表": self._handle_player_list,
+            "投掷抵消": self._handle_penalty_resistance,
+
+            # 玩家切换
+            "切换玩家": self._handle_switch_player_prompt,
+
             # 查询功能
             "排行榜": self._handle_leaderboard,
             "帮助": self._handle_help,
@@ -90,9 +97,6 @@ class MessageProcessor:
         self.pattern_handlers.extend([
             # 阵营选择：xxx
             (r"选择阵营：(.+)", self._handle_faction_selection_with_param),
-
-            # 陷阱选择模式 - 必须在数字移动之前匹配
-            (r"^([1-5])\.?\s*(.*)$", self._handle_trap_choice_pattern),
 
             # 数值组合 (8,13 或 单个数字)
             (r"^(\d+),(\d+)$", self._handle_move_two_markers),
@@ -106,6 +110,15 @@ class MessageProcessor:
             (r"购买(.+)", self._handle_buy_specific_item),
             (r"使用(.+)", self._handle_use_specific_item),
             (r"添加(.+)到道具商店", self._handle_add_item_to_shop),
+
+            # 花言巧语玩家选择
+            (r"^选择玩家(\d+)$", self._handle_select_player_for_penalty),
+
+            # 玩家切换
+            (r"^切换到(.+)$", self._handle_switch_to_player),
+
+            # 带点号的陷阱选择模式（如 "1. 都是我掉的"、"5. 我没掉"）
+            (r"^([1-5])\.\s*(.+)$", self._handle_numbered_trap_choice),
         ])
 
     async def process_message(self, message: UserMessage) -> BotResponse:
@@ -215,12 +228,66 @@ class MessageProcessor:
         """处理移动一个标记"""
         col = int(match.group(1))
 
+        # 如果是1-5的数字，先检查是否是陷阱选择
+        if 1 <= col <= 5:
+            # 检查玩家是否处于陷阱选择状态
+            # TODO: 需要游戏状态系统来跟踪玩家是否遇到了河神陷阱
+            # 现在暂时当作正常移动处理，如果列号无效会被下面的检查捕获
+            pass
+
+        # 对于特殊情况的数字（可能是列号也可能是选择）
+        if col in [3, 4, 5]:  # 这些数字既是有效列号又可能是陷阱选择
+            # 先尝试移动，如果失败再尝试其他选项
+            success, msg = self.game_service.move_markers(message.user_id, [col])
+            if success:
+                return BotResponse(
+                    content=msg,
+                    message_type=MessageType.GAME_ACTION,
+                    should_mention=True
+                )
+
+            # 移动失败，尝试陷阱选择
+            if 1 <= col <= 5:
+                choice_map = {
+                    1: "都是我掉的",
+                    2: "金骰子",
+                    3: "银骰子",
+                    4: "普通d6骰子",
+                    5: "我没掉"
+                }
+                return self._process_trap_choice(message, choice_map[col])
+
         # 检查是否是有效的列号
         if not (3 <= col <= 18):
-            return BotResponse(
-                content=f"无效的列号：{col}，有效范围是3-18",
-                message_type=MessageType.GAME_ACTION
-            )
+            # 如果是1-2且不是有效列号，先尝试作为陷阱选择，再作为玩家选择
+            if col in [1, 2]:
+                choice_map = {
+                    1: "都是我掉的",
+                    2: "金骰子"
+                }
+                return self._process_trap_choice(message, choice_map[col])
+
+            # 如果是6-10，尝试作为玩家选择
+            elif 6 <= col <= 10:
+                success, result_msg = self.game_service.select_player_for_penalty(
+                    message.user_id, str(col)
+                )
+                if success:
+                    return BotResponse(
+                        content=result_msg,
+                        message_type=MessageType.GAME_ACTION,
+                        should_mention=True
+                    )
+
+                return BotResponse(
+                    content=f"无效的选择：{col}，请检查当前游戏状态",
+                    message_type=MessageType.GAME_ACTION
+                )
+            else:
+                return BotResponse(
+                    content=f"无效的列号：{col}，有效范围是3-18",
+                    message_type=MessageType.GAME_ACTION
+                )
 
         success, msg = self.game_service.move_markers(message.user_id, [col])
 
@@ -431,6 +498,16 @@ class MessageProcessor:
 4/普通d6骰子 - 获得积分奖励
 5/我没掉 - 诚实选择
 
+当触发"花言巧语"陷阱时：
+选择玩家1 - 选择1号玩家承受惩罚
+投掷抵消 - 被选中的玩家投掷1d6尝试抵消
+
+🔄 玩家管理
+-----------
+玩家列表 - 查看所有活跃玩家
+切换玩家 - 显示可切换的玩家
+切换到[用户名] - 切换到指定玩家
+
 📊 查询功能
 -----------
 排行榜 - 查看玩家排行榜
@@ -447,34 +524,6 @@ class MessageProcessor:
         choice = message.content.strip()
         return self._process_trap_choice(message, choice)
 
-    def _handle_trap_choice_pattern(self, message: UserMessage, match: re.Match) -> BotResponse:
-        """处理陷阱选择（数字模式）"""
-        number = match.group(1)
-        text = match.group(2).strip()
-
-        # 映射数字到选择
-        choice_map = {
-            "1": "都是我掉的",
-            "2": "金骰子",
-            "3": "银骰子",
-            "4": "普通d6骰子",
-            "5": "我没掉"
-        }
-
-        if number in choice_map:
-            choice = choice_map[number]
-            # 如果有文字部分，验证是否匹配
-            if text and text not in choice:
-                return BotResponse(
-                    content=f"数字{number}对应的选项是'{choice}'，但你输入的是'{text}'，请确认选择。",
-                    message_type=MessageType.GAME_ACTION
-                )
-            return self._process_trap_choice(message, choice)
-        else:
-            return BotResponse(
-                content="请输入1-5之间的数字选择陷阱选项。",
-                message_type=MessageType.GAME_ACTION
-            )
 
     def _process_trap_choice(self, message: UserMessage, choice: str) -> BotResponse:
         """处理陷阱选择的具体逻辑"""
@@ -495,6 +544,132 @@ class MessageProcessor:
             content=response_text,
             message_type=MessageType.GAME_ACTION,
             should_mention=True
+        )
+
+    def _handle_player_list(self, message: UserMessage) -> BotResponse:
+        """显示所有玩家列表"""
+        success, players = self.game_service.get_all_players()
+
+        if not success or not players:
+            return BotResponse(
+                content="没有找到活跃玩家",
+                message_type=MessageType.QUERY
+            )
+
+        player_list = "📋 当前活跃玩家列表：\n" + "-" * 30 + "\n"
+        for player_info in players:
+            player_list += f"{player_info['id']}. {player_info['username']} ({player_info['faction']})\n"
+
+        return BotResponse(
+            content=player_list,
+            message_type=MessageType.QUERY
+        )
+
+    def _handle_select_player_for_penalty(self, message: UserMessage, match) -> BotResponse:
+        """处理选择玩家承受惩罚"""
+        target_number = match.group(1)
+        success, result_msg = self.game_service.select_player_for_penalty(
+            message.user_id, target_number
+        )
+
+        return BotResponse(
+            content=result_msg,
+            message_type=MessageType.GAME_ACTION,
+            should_mention=True
+        )
+
+    def _handle_penalty_resistance(self, message: UserMessage) -> BotResponse:
+        """处理投掷抵消惩罚"""
+        success, result_msg = self.game_service.attempt_penalty_resistance(message.user_id)
+
+        return BotResponse(
+            content=result_msg,
+            message_type=MessageType.GAME_ACTION,
+            should_mention=True
+        )
+
+    def _handle_switch_player_prompt(self, message: UserMessage) -> BotResponse:
+        """显示可切换的玩家列表"""
+        success, players = self.game_service.get_all_players()
+
+        if not success or not players:
+            return BotResponse(
+                content="没有找到其他玩家",
+                message_type=MessageType.QUERY
+            )
+
+        switch_prompt = "🔄 选择要切换到的玩家：\n" + "-" * 30 + "\n"
+        for player_info in players:
+            if player_info["player_id"] != message.user_id:
+                switch_prompt += f"💡 输入：切换到{player_info['username']}\n"
+
+        return BotResponse(
+            content=switch_prompt,
+            message_type=MessageType.QUERY
+        )
+
+    def _handle_switch_to_player(self, message: UserMessage, match) -> BotResponse:
+        """处理切换到指定玩家"""
+        target_username = match.group(1).strip()
+
+        # 通过用户名找到玩家ID
+        success, players = self.game_service.get_all_players()
+        if not success:
+            return BotResponse(
+                content="获取玩家列表失败",
+                message_type=MessageType.GAME_ACTION
+            )
+
+        target_player_id = None
+        for player_info in players:
+            if player_info["username"] == target_username:
+                target_player_id = player_info["player_id"]
+                break
+
+        if not target_player_id:
+            return BotResponse(
+                content=f"未找到玩家：{target_username}",
+                message_type=MessageType.GAME_ACTION
+            )
+
+        success, result_msg = self.game_service.switch_to_player(
+            message.user_id, target_player_id
+        )
+
+        return BotResponse(
+            content=result_msg,
+            message_type=MessageType.GAME_ACTION,
+            should_mention=True
+        )
+
+    def _handle_numbered_trap_choice(self, message: UserMessage, match) -> BotResponse:
+        """处理带数字的陷阱选择（如 "5. 我没掉"）"""
+        number = match.group(1)
+        text = match.group(2).strip()
+
+        # 映射数字到选择
+        choice_map = {
+            "1": "都是我掉的",
+            "2": "金骰子",
+            "3": "银骰子",
+            "4": "普通d6骰子",
+            "5": "我没掉"
+        }
+
+        if number in choice_map:
+            expected_choice = choice_map[number]
+            # 验证文字是否匹配
+            if text in expected_choice or expected_choice in text:
+                return self._process_trap_choice(message, expected_choice)
+            else:
+                return BotResponse(
+                    content=f"数字{number}对应的选项是'{expected_choice}'，但你输入的是'{text}'，请确认选择。",
+                    message_type=MessageType.GAME_ACTION
+                )
+
+        return BotResponse(
+            content="请输入1-5之间的数字选择陷阱选项。",
+            message_type=MessageType.GAME_ACTION
         )
 
 

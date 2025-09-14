@@ -30,6 +30,7 @@ try:
     from ..services.message_processor import MessageProcessor, UserMessage
     from ..core.achievement_system import AchievementSystem, AchievementCategory
     from ..core.trap_system import TrapSystem
+    from ..config.config_manager import get_config
 except ImportError:
     try:
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -697,8 +698,12 @@ class CantStopGUI(QMainWindow):
 
     def init_ui(self):
         """初始化用户界面"""
-        self.setWindowTitle("Can't Stop 贪骰无厌游戏")
-        self.setGeometry(100, 100, 1200, 800)
+        window_title = get_config("game_config", "ui.window_title", "Can't Stop 贪骰无厌游戏")
+        window_width = get_config("game_config", "ui.window_size.width", 1200)
+        window_height = get_config("game_config", "ui.window_size.height", 800)
+
+        self.setWindowTitle(window_title)
+        self.setGeometry(100, 100, window_width, window_height)
 
         # 高DPI优化
         self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, True)

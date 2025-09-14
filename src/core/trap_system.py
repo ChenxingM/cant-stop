@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple
 from enum import Enum
 from dataclasses import dataclass
 import random
+from ..config.config_manager import get_config
 
 
 class TrapType(Enum):
@@ -24,7 +25,12 @@ class TrapEffect:
     penalty_description: str
     character_quote: str
     first_time_penalty: str
-    repeat_penalty: str = "-10积分"
+    repeat_penalty: str = None
+
+    def __post_init__(self):
+        if self.repeat_penalty is None:
+            dice_cost = get_config("game_config", "game.dice_cost", 10)
+            self.repeat_penalty = f"-{dice_cost}积分"
 
 
 class TrapSystem:
@@ -37,13 +43,14 @@ class TrapSystem:
 
     def _init_traps(self):
         """初始化所有陷阱"""
+        dice_cost = get_config("game_config", "game.dice_cost", 10)
         self.traps[TrapType.FIREBALL] = TrapEffect(
             trap_type=TrapType.FIREBALL,
             description="火球砸出的坑洞让你无处下脚。",
             penalty_description="停止一回合（仍需消耗回合积分）\n强制骰子结果：下回合掷骰自动变为 [4, 5, 5, 5, 6, 6]\n无法主动结束：完成此惩罚前不得主动结束当前轮次",
             character_quote="为什么我的火球术不能骰出这种伤害啊?!!",
             first_time_penalty="fireball_curse",
-            repeat_penalty="-10积分"
+            repeat_penalty=f"-{dice_cost}积分"
         )
 
         self.traps[TrapType.NO_LOOK_BACK] = TrapEffect(
@@ -52,16 +59,16 @@ class TrapSystem:
             penalty_description="随机-1至-5积分\n15%概率触发特殊惩罚：当前轮次所有临时标记清零",
             character_quote="停停，哪儿来的窗子。",
             first_time_penalty="random_penalty",
-            repeat_penalty="-10积分"
+            repeat_penalty=f"-{dice_cost}积分"
         )
 
         self.traps[TrapType.RIVER_SPIRIT] = TrapEffect(
             trap_type=TrapType.RIVER_SPIRIT,
             description="河边的土地神要求你做出选择。",
-            penalty_description="选择惩罚：\n1. 失去下回合行动权（-10积分）\n2. 当前轮次标记位置-1（所有临时标记后退一格）",
+            penalty_description=f"选择惩罚：\n1. 失去下回合行动权（-{dice_cost}积分）\n2. 当前轮次标记位置-1（所有临时标记后退一格）",
             character_quote="你选择相信我，还是相信你自己？",
             first_time_penalty="choice_penalty",
-            repeat_penalty="-10积分"
+            repeat_penalty=f"-{dice_cost}积分"
         )
 
         self.traps[TrapType.SWEET_TALK] = TrapEffect(
@@ -70,7 +77,7 @@ class TrapSystem:
             penalty_description="迷惑效果：下回合必须选择与本回合不同的列进行移动\n如果无法满足条件，额外-15积分",
             character_quote="相信我，这条路更好走～",
             first_time_penalty="direction_confusion",
-            repeat_penalty="-10积分"
+            repeat_penalty=f"-{dice_cost}积分"
         )
 
     def get_trap_for_position(self, column: int, position: int) -> Optional[TrapType]:
@@ -145,10 +152,11 @@ class TrapSystem:
             return penalty_data
 
         elif trap_type == TrapType.RIVER_SPIRIT:
+            dice_cost = get_config("game_config", "game.dice_cost", 10)
             return {
                 "type": "river_spirit_choice",
                 "choices": [
-                    {"id": "skip_turn", "description": "失去下回合行动权（-10积分）"},
+                    {"id": "skip_turn", "description": f"失去下回合行动权（-{dice_cost}积分）"},
                     {"id": "markers_back", "description": "当前轮次标记位置-1（所有临时标记后退一格）"}
                 ]
             }

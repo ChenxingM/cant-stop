@@ -1,0 +1,25 @@
+{
+  "database": {
+    "url": "sqlite:///cant_stop.db",
+    "echo": false
+  },
+  "game": {
+    "dice_cost": 10,
+    "max_temporary_markers": 3,
+    "score_rewards": {
+      "草图": 20,
+      "精致小图": 80,
+      "精草大图": 100,
+      "精致大图": 150,
+      "超常发挥": 30
+    }
+  },
+  "ui": {
+    "window_title": "Can't Stop 贪骰无厌游戏",
+    "window_size": {
+      "width": 1200,
+      "height": 800
+    },
+    "enable_high_dpi": true
+  }
+}

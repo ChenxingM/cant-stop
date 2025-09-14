@@ -411,3 +411,101 @@ class GameService:
             message += "\n当前没有进行中的游戏"
 
         return message
+
+    def get_all_players(self) -> Tuple[bool, List[Dict[str, str]]]:
+        """获取所有活跃玩家列表"""
+        try:
+            players = self.db.get_all_active_players()
+            player_list = []
+
+            for i, player in enumerate(players, 1):
+                player_list.append({
+                    "id": str(i),
+                    "player_id": player.player_id,
+                    "username": player.username,
+                    "faction": player.faction.value
+                })
+
+            return True, player_list
+        except Exception as e:
+            return False, []
+
+    def select_player_for_penalty(self, selector_id: str, target_number: str) -> Tuple[bool, str]:
+        """选择玩家承受花言巧语惩罚"""
+        try:
+            # 获取所有玩家
+            success, players = self.get_all_players()
+            if not success or not players:
+                return False, "没有找到其他玩家"
+
+            # 验证选择的数字
+            try:
+                target_index = int(target_number) - 1
+                if target_index < 0 or target_index >= len(players):
+                    return False, f"无效选择，请选择 1-{len(players)} 之间的数字"
+            except ValueError:
+                return False, "请输入有效的数字"
+
+            target_player_info = players[target_index]
+            target_player = self.db.get_player(target_player_info["player_id"])
+
+            if not target_player:
+                return False, "目标玩家不存在"
+
+            # 不能选择自己
+            if target_player.player_id == selector_id:
+                return False, "不能选择自己作为惩罚目标"
+
+            # 应用惩罚 - 设置下轮限制列
+            # TODO: 这里需要记录惩罚状态，暂时返回确认消息
+
+            result_msg = f"🎯 已选择 {target_player.username} 承受花言巧语惩罚！\n"
+            result_msg += f"⚠️ {target_player.username} 下一轮将不能在当前轮次的列上行进\n"
+            result_msg += f"🎲 {target_player.username} 可以投掷1d6，投出6点则抵消惩罚\n"
+            result_msg += f"💡 {target_player.username} 请输入 '投掷抵消' 尝试抵消惩罚"
+
+            return True, result_msg
+
+        except Exception as e:
+            return False, f"选择玩家失败：{str(e)}"
+
+    def attempt_penalty_resistance(self, player_id: str) -> Tuple[bool, str]:
+        """尝试通过投掷1d6抵消花言巧语惩罚"""
+        try:
+            import random
+            dice_result = random.randint(1, 6)
+
+            player = self.db.get_player(player_id)
+            if not player:
+                return False, "玩家不存在"
+
+            if dice_result == 6:
+                return True, f"🎲 {player.username} 投出了 {dice_result} 点！\n✨ 惩罚被成功抵消，可以正常行动！"
+            else:
+                return False, f"🎲 {player.username} 投出了 {dice_result} 点\n😔 惩罚依然生效，下轮不能在之前的列上行进"
+
+        except Exception as e:
+            return False, f"抵消投掷失败：{str(e)}"
+
+    def switch_to_player(self, current_player_id: str, target_player_id: str) -> Tuple[bool, str]:
+        """切换到指定玩家（不恢复进度）"""
+        try:
+            target_player = self.db.get_player(target_player_id)
+            if not target_player:
+                return False, f"玩家 {target_player_id} 不存在"
+
+            # 检查目标玩家是否有活跃会话
+            target_session = self.db.get_player_active_session(target_player_id)
+
+            if target_session:
+                result_msg = f"🔄 已切换到玩家：{target_player.username}\n"
+                result_msg += f"⚡ 当前游戏状态已恢复，可以继续游戏\n"
+                result_msg += self._get_current_status(target_player, target_session)
+            else:
+                result_msg = f"🔄 已切换到玩家：{target_player.username}\n"
+                result_msg += f"💡 该玩家目前没有进行中的游戏，可以开始新游戏"
+
+            return True, result_msg
+
+        except Exception as e:
+            return False, f"切换玩家失败：{str(e)}"

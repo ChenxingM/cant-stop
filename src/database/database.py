@@ -11,14 +11,19 @@ from contextlib import contextmanager, asynccontextmanager
 
 from .models import Base, PlayerDB, GameSessionDB, PlayerProgressDB, TemporaryMarkerDB
 from ..models.game_models import Player, GameSession, Faction, GameState
+from ..config.config_manager import get_config
 
 
 class DatabaseManager:
     """数据库管理器"""
 
-    def __init__(self, database_url: str = "sqlite:///cant_stop.db"):
+    def __init__(self, database_url: str = None):
+        if database_url is None:
+            database_url = get_config("game_config", "database.url", "sqlite:///cant_stop.db")
+
         self.database_url = database_url
-        self.engine = create_engine(database_url, echo=False)
+        echo = get_config("game_config", "database.echo", False)
+        self.engine = create_engine(database_url, echo=echo)
         self.session_factory = sessionmaker(bind=self.engine)
 
     def create_tables(self):
@@ -118,6 +123,45 @@ class DatabaseManager:
                     player.progress.completed_columns.add(progress.column_number)
 
             return player
+
+    def get_all_active_players(self) -> List[Player]:
+        """获取所有活跃玩家"""
+        with self.get_session() as session:
+            player_dbs = session.query(PlayerDB).filter_by(is_active=True).all()
+            players = []
+
+            for player_db in player_dbs:
+                # 获取玩家进度
+                progress_records = session.query(PlayerProgressDB).filter_by(
+                    player_id=player_db.player_id
+                ).all()
+
+                # 转换为业务模型
+                player = Player(
+                    player_id=player_db.player_id,
+                    username=player_db.username,
+                    faction=player_db.faction,
+                    current_score=player_db.current_score,
+                    total_score=player_db.total_score,
+                    games_played=player_db.games_played,
+                    games_won=player_db.games_won,
+                    is_active=player_db.is_active,
+                    created_at=player_db.created_at,
+                    last_active=player_db.last_active
+                )
+
+                # 设置进度
+                for progress in progress_records:
+                    player.progress.set_progress(
+                        progress.column_number,
+                        progress.permanent_progress
+                    )
+                    if progress.is_completed:
+                        player.progress.completed_columns.add(progress.column_number)
+
+                players.append(player)
+
+            return players
 
     def update_player(self, player: Player) -> bool:
         """更新玩家信息"""
