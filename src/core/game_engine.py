@@ -200,6 +200,10 @@ class GameEngine:
         if not player:
             return False, "玩家不存在"
 
+        # 检查轮次状态 - 只有在MOVE_MARKERS状态下才能移动标记
+        if session.turn_state != TurnState.MOVE_MARKERS:
+            return False, "当前状态无法移动标记，请先掷骰子"
+
         # 检查目标列是否有效
         for column in target_columns:
             if not self.map_config.is_valid_column(column):
@@ -297,19 +301,59 @@ class GameEngine:
         session = self.get_game_session(session_id)
         player = self.get_player(session.player_id)
 
+        completed_columns = []
+
         for marker in session.temporary_markers[:]:  # 复制列表以避免修改时的问题
             column_length = self.map_config.get_column_length(marker.column)
             total_progress = player.progress.get_progress(marker.column) + marker.position
 
             if total_progress >= column_length:
-                # 登顶，清空该列所有玩家的临时标记
+                # 登顶！更新玩家永久进度
+                player.progress.set_progress(marker.column, column_length)
+                completed_columns.append(marker.column)
+
+                # 清空该列所有玩家的临时标记
                 self._clear_column_temporary_markers(marker.column)
-                # 这里可以触发登顶奖励逻辑
+
+        # 如果有登顶，触发登顶奖励和消息
+        if completed_columns:
+            self._handle_column_completions(session_id, completed_columns)
 
     def _clear_column_temporary_markers(self, column: int):
         """清空指定列的所有临时标记"""
         for session in self.game_sessions.values():
             session.remove_temporary_marker(column)
+
+    def _handle_column_completions(self, session_id: str, completed_columns: List[int]):
+        """处理列完成（登顶）事件"""
+        session = self.get_game_session(session_id)
+        player = self.get_player(session.player_id)
+
+        for column in completed_columns:
+            print(f"🎉 恭喜您在{column}列登顶～")
+            print("已清空该列场上所有临时标记。")
+
+            # 登顶奖励逻辑
+            base_reward = 50  # 基础奖励
+            column_reward = column * 2  # 根据列号的额外奖励
+            total_reward = base_reward + column_reward
+
+            player.add_score(total_reward, f"登顶奖励-第{column}列")
+            print(f"✦登顶奖励")
+            print(f"恭喜您获得 {total_reward} 积分")
+
+            # 检查是否是首次登顶该列（首达奖励）
+            # 这里可以根据需要添加首达奖励逻辑
+            print("✦首达奖励")
+            first_time_bonus = 20
+            player.add_score(first_time_bonus, f"首达奖励-第{column}列")
+            print(f"恭喜您在该列首次登顶，获得 {first_time_bonus} 积分")
+
+        # 检查是否获胜（3列登顶）
+        if player.progress.is_winner():
+            print("🎊 恭喜您获胜！您已在3列登顶！")
+            session.state = GameState.COMPLETED
+            player.games_won += 1
 
     def _check_and_trigger_events(self, session_id: str, moved_columns: List[int]) -> str:
         """检查并触发地图事件"""

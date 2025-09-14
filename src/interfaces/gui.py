@@ -1,5 +1,5 @@
 """
-Can't Stop游戏PySide6 GUI界面 - 重新设计版本
+Can't Stop游戏PySide6 GUI
 """
 
 import sys
@@ -1375,7 +1375,7 @@ class CantStopGUI(QMainWindow):
                 success, message = self.game_service.reset_all_game_data()
                 self.show_message(f"{'✅' if success else '❌'} {message}")
                 if success:
-                    self.refresh_players()
+                    self.player_list_widget.refresh_players()
                     self.game_board.clear_board()
 
         elif command == "trap_config":
