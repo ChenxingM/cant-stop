@@ -22,5 +22,9 @@ mypy>=1.4.0
 pyyaml>=6.0.0
 python-dotenv>=1.0.0
 
-# Optional: For future QQ bot integration
+# QQ bot integration
+aiohttp>=3.8.0
+asyncio-throttle>=1.0.0
+
+# Optional: For future extensions
 nonebot2>=2.0.0

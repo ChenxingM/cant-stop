@@ -19,7 +19,9 @@ class DatabaseManager:
 
     def __init__(self, database_url: str = None):
         if database_url is None:
-            database_url = get_config("game_config", "database.url", "sqlite:///cant_stop.db")
+            from ..utils.config import get_absolute_db_path
+            # 强制使用绝对路径，确保所有组件使用同一个数据库文件
+            database_url = get_absolute_db_path()
 
         self.database_url = database_url
         echo = get_config("game_config", "database.echo", False)
@@ -53,6 +55,8 @@ class DatabaseManager:
                 player.total_score = 0
                 player.games_played = 0
                 player.games_won = 0
+                player.total_dice_rolls = 0
+                player.total_turns = 0
                 player.is_active = True
 
             session.commit()
@@ -108,6 +112,8 @@ class DatabaseManager:
                 total_score=player_db.total_score,
                 games_played=player_db.games_played,
                 games_won=player_db.games_won,
+                total_dice_rolls=getattr(player_db, 'total_dice_rolls', 0),
+                total_turns=getattr(player_db, 'total_turns', 0),
                 is_active=player_db.is_active,
                 created_at=player_db.created_at,
                 last_active=player_db.last_active
@@ -145,6 +151,8 @@ class DatabaseManager:
                     total_score=player_db.total_score,
                     games_played=player_db.games_played,
                     games_won=player_db.games_won,
+                    total_dice_rolls=getattr(player_db, 'total_dice_rolls', 0),
+                    total_turns=getattr(player_db, 'total_turns', 0),
                     is_active=player_db.is_active,
                     created_at=player_db.created_at,
                     last_active=player_db.last_active
@@ -179,6 +187,8 @@ class DatabaseManager:
             player_db.total_score = player.total_score
             player_db.games_played = player.games_played
             player_db.games_won = player.games_won
+            player_db.total_dice_rolls = player.total_dice_rolls
+            player_db.total_turns = player.total_turns
             player_db.is_active = player.is_active
             player_db.last_active = player.last_active
 

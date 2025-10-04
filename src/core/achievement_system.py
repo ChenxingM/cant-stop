@@ -113,6 +113,15 @@ class AchievementSystem:
             unlock_condition="触发小小火球术陷阱"
         )
 
+        self.achievements["curiosity_killed_cat"] = Achievement(
+            id="curiosity_killed_cat",
+            name="🐈 好奇心害死猫",
+            description="有些真相不该被知道",
+            category=AchievementCategory.SPECIAL,
+            reward_description="神秘经验 - 特殊称号",
+            unlock_condition="触发不要回头陷阱"
+        )
+
     def get_all_achievements(self) -> List[Achievement]:
         """获取所有成就"""
         return list(self.achievements.values())

@@ -154,6 +154,8 @@ class Player:
     total_score: int = 0
     games_played: int = 0
     games_won: int = 0
+    total_dice_rolls: int = 0  # 总掷骰次数
+    total_turns: int = 0       # 总轮次数
     progress: PlayerProgress = field(default_factory=PlayerProgress)
     inventory: List[str] = field(default_factory=list)
     achievements: Set[str] = field(default_factory=set)

@@ -12,10 +12,31 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def get_project_root() -> str:
+    """获取项目根目录的绝对路径"""
+    current_dir = Path(__file__).resolve()
+    # 从src/utils/config.py向上找到项目根目录
+    for parent in current_dir.parents:
+        if (parent / 'src').exists() and (parent / 'start_gui.py').exists():
+            return str(parent)
+    # 如果找不到，使用当前文件的上两级目录
+    return str(current_dir.parent.parent.parent)
+
+
+def get_absolute_db_path(relative_path: str = "cant_stop.db") -> str:
+    """获取数据库文件的绝对路径"""
+    project_root = get_project_root()
+    return f"sqlite:///{os.path.join(project_root, relative_path)}"
+
+
 @dataclass
 class DatabaseConfig:
     """数据库配置"""
-    url: str = "sqlite:///cant_stop.db"
+    url: str = None
+
+    def __post_init__(self):
+        if self.url is None:
+            self.url = get_absolute_db_path()
     echo: bool = False
     pool_size: int = 10
     max_overflow: int = 20
@@ -185,8 +206,20 @@ class Config:
     def _init_database_config(self) -> DatabaseConfig:
         """初始化数据库配置"""
         db_config = self.config_data.get('database', {})
+
+        # 如果配置中有url，使用配置的；否则使用默认的绝对路径
+        url = db_config.get('url')
+        if url and not url.startswith('sqlite:///'):
+            # 如果不是绝对路径的sqlite URL，转换为绝对路径
+            if url.startswith('sqlite://'):
+                url = get_absolute_db_path(url.replace('sqlite:///', ''))
+            else:
+                url = get_absolute_db_path(url)
+        elif url is None:
+            url = get_absolute_db_path()
+
         return DatabaseConfig(
-            url=db_config.get('url', 'sqlite:///cant_stop.db'),
+            url=url,
             echo=db_config.get('echo', False),
             pool_size=db_config.get('pool_size', 10),
             max_overflow=db_config.get('max_overflow', 20)

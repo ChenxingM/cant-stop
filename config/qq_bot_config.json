@@ -1,0 +1,34 @@
+{
+  "onebot": {
+    "url": "http://127.0.0.1:3001",
+    "timeout": 30
+  },
+  "bot": {
+    "listen_host": "127.0.0.1",
+    "listen_port": 8080,
+    "allowed_groups": [],
+    "admin_users": [],
+    "auto_register": true
+  },
+  "message": {
+    "use_emoji": true,
+    "max_length": 1000,
+    "compact_mode": false,
+    "mention_user": false,
+    "welcome_new_users": true
+  },
+  "game": {
+    "auto_help": true,
+    "command_prefix": "",
+    "rate_limit": {
+      "enabled": true,
+      "max_commands_per_minute": 10
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/qq_bot.log",
+    "max_size": "10MB",
+    "backup_count": 5
+  }
+}

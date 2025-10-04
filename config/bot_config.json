@@ -1,0 +1,18 @@
+{
+  "platform": "lagrange",
+  "websocket": {
+    "url": "ws://127.0.0.1:8080/onebot/v11/ws",
+    "reconnect": true,
+    "timeout": 30
+  },
+  "bot": {
+    "allowed_groups": [
+      541674420
+    ],
+    "admin_users": [
+      1234567890
+    ],
+    "auto_register": true,
+    "default_faction": "收养人"
+  }
+}

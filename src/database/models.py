@@ -28,6 +28,8 @@ class PlayerDB(Base):
     total_score = Column(Integer, default=0)
     games_played = Column(Integer, default=0)
     games_won = Column(Integer, default=0)
+    total_dice_rolls = Column(Integer, default=0)  # 总掷骰次数
+    total_turns = Column(Integer, default=0)       # 总轮次数
     created_at = Column(DateTime, default=func.now())
     last_active = Column(DateTime, default=func.now())
     is_active = Column(Boolean, default=True)

@@ -55,11 +55,11 @@ class TrapSystem:
 
         self.traps[TrapType.NO_LOOK_BACK] = TrapEffect(
             trap_type=TrapType.NO_LOOK_BACK,
-            description="身后传来奇怪的声音，但是千万不要回头。",
-            penalty_description="随机-1至-5积分\n15%概率触发特殊惩罚：当前轮次所有临时标记清零",
-            character_quote="停停，哪儿来的窗子。",
-            first_time_penalty="random_penalty",
-            repeat_penalty=f"-{dice_cost}积分"
+            description="你感到身后一股寒意，当你战战兢兢地转过身试图搞清楚状况时，你发现在看到它脸的那一刻一切都已经晚了……",
+            penalty_description="清空当前列进度回到上一个永久旗子位置或初始位置",
+            character_quote="…话说回来，我有一计。",
+            first_time_penalty="clear_current_column",
+            repeat_penalty="clear_current_column"
         )
 
         self.traps[TrapType.RIVER_SPIRIT] = TrapEffect(

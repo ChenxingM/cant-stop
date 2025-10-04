@@ -65,7 +65,7 @@ class GameService:
             session = self.engine.create_game_session(player_id)
             self.db.save_game_session(session)
 
-            return True, "新游戏开始！输入 '掷骰' 开始第一回合"
+            return True, "新游戏开始！输入 .r6d6 开始第一回合"
 
         except Exception as e:
             return False, f"开始游戏失败：{str(e)}"
@@ -113,16 +113,18 @@ class GameService:
             # 掷骰
             dice_roll = self.engine.roll_dice(session.session_id)
 
+            # 更新掷骰统计
+            player.total_dice_rolls += 1
+
             # 保存状态
             self._save_player_and_session(player, session)
 
             # 获取可能的组合
             combinations = dice_roll.get_possible_combinations()
 
-            message = f"🎲 {player.username}的骰点：{' '.join(map(str, dice_roll.results))}\n"
+            message = f"的骰点：🎲{' '.join(map(str, dice_roll.results))}\n"
             message += f"积分：{player.current_score} (-10)\n"
-            message += f"可选组合：{combinations}\n"
-            message += "请选择数值组合（格式：8,13 或单个数字）"
+            message += "请选择数值组合（格式：a,b 或单个数字）"
 
             return True, message, combinations
 
@@ -166,6 +168,9 @@ class GameService:
             success, message = self.engine.end_turn_actively(session.session_id)
 
             if success:
+                # 更新轮次统计
+                player.total_turns += 1
+
                 # 保存状态
                 self._save_player_and_session(player, session)
 
@@ -412,23 +417,135 @@ class GameService:
 
         return message
 
-    def get_all_players(self) -> Tuple[bool, List[Dict[str, str]]]:
+    def get_all_players(self) -> Tuple[bool, List[Dict[str, Any]]]:
         """获取所有活跃玩家列表"""
         try:
             players = self.db.get_all_active_players()
             player_list = []
 
             for i, player in enumerate(players, 1):
+                # 获取玩家的游戏状态
+                session = self.db.get_player_active_session(player.player_id)
+                status = "游戏中" if session else "空闲"
+
                 player_list.append({
                     "id": str(i),
                     "player_id": player.player_id,
                     "username": player.username,
-                    "faction": player.faction.value
+                    "faction": player.faction.value,
+                    "current_score": player.current_score,
+                    "points": player.current_score,  # 为了兼容性同时提供points字段
+                    "status": status,
+                    "achievements_count": len(player.achievements) if hasattr(player, 'achievements') and player.achievements else 0,
+                    "dice_rolls": getattr(player, 'total_dice_rolls', 0)  # 使用getattr避免属性不存在错误
                 })
 
             return True, player_list
         except Exception as e:
             return False, []
+
+    def get_gm_overview(self) -> Dict[str, any]:
+        """获取GM视角的游戏整体状态"""
+        try:
+            players = self.db.get_all_active_players()
+            overview = {
+                "total_players": len(players),
+                "players": [],
+                "active_games": 0,
+                "game_statistics": {
+                    "total_turns": 0,
+                    "total_dice_rolls": 0,
+                    "achievements_unlocked": 0,
+                    "traps_triggered": 0
+                }
+            }
+
+            for player in players:
+                session = self.db.get_player_active_session(player.player_id)
+                player_data = {
+                    "player_id": player.player_id,
+                    "username": player.username,
+                    "faction": player.faction.value,
+                    "points": player.current_score,
+                    "status": "游戏中" if session else "空闲",
+                    "current_progress": self._get_player_progress_summary(player),
+                    "achievements_count": len(player.achievements),
+                    "dice_rolls": getattr(player, 'total_dice_rolls', 0),
+                    "turns_played": getattr(player, 'total_turns', 0)
+                }
+
+                if session:
+                    overview["active_games"] += 1
+
+                    # 统计临时标记
+                    temp_markers_count = len(session.temporary_markers) if hasattr(session, 'temporary_markers') else 0
+
+                    # 统计不同列的临时标记
+                    columns_with_markers = len(set(marker.column for marker in session.temporary_markers)) if hasattr(session, 'temporary_markers') else 0
+
+                    # 统计永久进度
+                    permanent_progress = 0
+                    if hasattr(player, 'progress') and player.progress.permanent_progress:
+                        permanent_progress = len(player.progress.permanent_progress)
+
+                    player_data.update({
+                        "turn_state": session.turn_state.value,
+                        "columns_progressed": columns_with_markers,
+                        "temporary_markers": temp_markers_count,
+                        "permanent_markers": permanent_progress
+                    })
+
+                overview["players"].append(player_data)
+
+            # 统计信息汇总
+            overview["game_statistics"]["total_turns"] = sum(p.get("turns_played", 0) for p in overview["players"])
+            overview["game_statistics"]["total_dice_rolls"] = sum(p.get("dice_rolls", 0) for p in overview["players"])
+            overview["game_statistics"]["achievements_unlocked"] = sum(p.get("achievements_count", 0) for p in overview["players"])
+
+            return overview
+
+        except Exception as e:
+            return {
+                "error": str(e),
+                "total_players": 0,
+                "players": [],
+                "active_games": 0,
+                "game_statistics": {"total_turns": 0, "total_dice_rolls": 0, "achievements_unlocked": 0, "traps_triggered": 0}
+            }
+
+    def _get_player_progress_summary(self, player) -> str:
+        """获取玩家进度摘要"""
+        try:
+            # 从数据库获取活跃会话
+            session = self.db.get_player_active_session(player.player_id)
+            if not session:
+                # 检查是否有永久进度
+                if hasattr(player, 'progress') and player.progress.permanent_progress:
+                    completed_count = len(player.progress.completed_columns)
+                    total_progress = sum(player.progress.permanent_progress.values())
+                    return f"已完成{completed_count}列 (总进度:{total_progress})"
+                return "未开始游戏"
+
+            # 统计临时进度
+            temp_progress = 0
+            permanent_progress = 0
+
+            if hasattr(session, 'temporary_markers'):
+                temp_progress = len(session.temporary_markers)
+
+            if hasattr(player, 'progress') and player.progress.permanent_progress:
+                permanent_progress = len(player.progress.permanent_progress)
+                completed_count = len(player.progress.completed_columns)
+
+                if completed_count > 0:
+                    return f"已完成{completed_count}列, 临时标记{temp_progress}个"
+                elif permanent_progress > 0:
+                    return f"永久进度{permanent_progress}列, 临时标记{temp_progress}个"
+
+            return f"轮次{session.turn_number}, 临时标记{temp_progress}个"
+
+        except Exception as e:
+            return f"获取失败: {str(e)[:10]}"
 
     def select_player_for_penalty(self, selector_id: str, target_number: str) -> Tuple[bool, str]:
         """选择玩家承受花言巧语惩罚"""

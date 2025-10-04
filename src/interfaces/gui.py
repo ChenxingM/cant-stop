@@ -16,7 +16,7 @@ try:
         QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
         QLabel, QLineEdit, QPushButton, QTextEdit, QComboBox, QGridLayout,
         QGroupBox, QSpinBox, QMessageBox, QListWidget, QFrame, QSplitter,
-        QScrollArea, QListWidgetItem, QMenu
+        QScrollArea, QListWidgetItem, QMenu, QTabWidget
     )
     from PySide6.QtCore import Qt, QTimer, QTime, Signal
     from PySide6.QtGui import QFont, QPalette, QColor, QAction
@@ -31,6 +31,7 @@ try:
     from ..core.achievement_system import AchievementSystem, AchievementCategory
     from ..core.trap_system import TrapSystem
     from ..config.config_manager import get_config
+    from .gm_panel import GMOverviewPanel
 except ImportError:
     try:
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -38,6 +39,7 @@ except ImportError:
         from src.services.message_processor import MessageProcessor, UserMessage
         from src.core.achievement_system import AchievementSystem, AchievementCategory
         from src.core.trap_system import TrapSystem
+        from src.interfaces.gm_panel import GMOverviewPanel
     except ImportError as e:
         print(f"❌ 无法导入游戏服务: {e}")
         sys.exit(1)
@@ -196,6 +198,14 @@ class GameCell(QFrame):
             self.player_label.setText(f"{trap_icon}{player_name[:2]}")
             self.position_label.setText(icon)
 
+            # 设置 hover 提示
+            tooltip = f"玩家: {player_name}\n类型: {'永久标记' if is_permanent else '临时标记'}\n位置: 列{self.column}, 行{self.row}"
+            if self.trap_type:
+                trap_info = self.trap_system.traps[self.trap_type] if self.trap_system else None
+                if trap_info:
+                    tooltip += f"\n\n🕳️ 陷阱: {self.trap_type.value}\n{trap_info.description}"
+            self.setToolTip(tooltip)
+
         else:
             # 多玩家简化显示
             colors = [self.PLAYER_COLORS.get(p[1], "#6c757d") for p in self.players]
@@ -221,6 +231,21 @@ class GameCell(QFrame):
 
             self.player_label.setText(f"{trap_icon}{len(self.players)}")
             self.position_label.setText("●" if has_permanent else "○")
+
+            # 设置鼠标悟停提示
+            tooltip = f"玩家数量: {len(self.players)}\n\n"
+            for i, (player_name, _, is_permanent) in enumerate(self.players):
+                marker_type = "永久标记" if is_permanent else "临时标记"
+                tooltip += f"{i+1}. {player_name} ({marker_type})\n"
+            tooltip += f"\n位置: 列{self.column}, 行{self.row}"
+
+            if self.trap_type:
+                tooltip += f"\n\n🕳️ 陷阱: {self.trap_type.value}"
+                if self.trap_system:
+                    trap_info = self.trap_system.traps[self.trap_type]
+                    tooltip += f"\n{trap_info.description}"
+
+            self.setToolTip(tooltip)
 
     def update_trap_status(self, trap_type, trap_tooltip=""):
         """更新陷阱状态"""
@@ -1220,10 +1245,50 @@ class CantStopGUI(QMainWindow):
         return panel
 
     def create_right_panel(self):
-        """创建右侧信息面板"""
+        """创建右侧信息面板 - 带标签页的GM和玩家视角"""
         panel = QWidget()
         panel.setStyleSheet("QWidget { background: #1e1e1e; }")
         layout = QVBoxLayout(panel)
+
+        # 创建标签页组件
+        tab_widget = QTabWidget()
+        tab_widget.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #444444;
+                background: #1e1e1e;
+            }
+            QTabBar::tab {
+                background: #2d2d2d;
+                color: #ffffff;
+                padding: 8px 16px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            QTabBar::tab:selected {
+                background: #0d7377;
+                color: #ffffff;
+            }
+            QTabBar::tab:hover {
+                background: #404040;
+            }
+        """)
+
+        # 第一个标签：玩家视角（原有功能）
+        player_tab = self.create_player_tab()
+        tab_widget.addTab(player_tab, "👥 玩家信息")
+
+        # 第二个标签：GM视角
+        gm_tab = self.create_gm_tab()
+        tab_widget.addTab(gm_tab, "🎮 GM视角")
+
+        layout.addWidget(tab_widget)
+        return panel
+
+    def create_player_tab(self):
+        """创建玩家标签页（原有的右侧面板内容）"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
 
         # 玩家列表
         self.player_list_widget = PlayerListWidget(self.game_service)
@@ -1251,7 +1316,18 @@ class CantStopGUI(QMainWindow):
         self.achievement_panel = AchievementPanel()
         layout.addWidget(self.achievement_panel)
 
-        return panel
+        return tab
+
+    def create_gm_tab(self):
+        """创建GM视角标签页"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+
+        # 添加GM总览面板
+        self.gm_panel = GMOverviewPanel(self.game_service)
+        layout.addWidget(self.gm_panel)
+
+        return tab
 
     def show_message(self, message: str):
         """显示消息"""

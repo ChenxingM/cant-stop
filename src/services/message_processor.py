@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple, Any, Callable
 from dataclasses import dataclass
 from enum import Enum
 import asyncio
+import logging
 
 from .game_service import GameService
 
@@ -46,6 +47,7 @@ class MessageProcessor:
         self.game_service = GameService()
         self.command_handlers: Dict[str, Callable] = {}
         self.pattern_handlers: List[Tuple[str, Callable]] = []
+        self.logger = logging.getLogger(__name__)
         self._init_handlers()
 
     def _init_handlers(self):
@@ -121,8 +123,32 @@ class MessageProcessor:
             (r"^([1-5])\.\s*(.+)$", self._handle_numbered_trap_choice),
         ])
 
-    async def process_message(self, message: UserMessage) -> BotResponse:
-        """处理消息"""
+    def process_message(self, user_id: str, message: str) -> Tuple[bool, Optional[str]]:
+        """同步处理消息的包装器"""
+        import asyncio
+        try:
+            # 创建 UserMessage 对象
+            user_message = UserMessage(user_id=user_id, username="", content=message)
+
+            # 在事件循环中运行异步方法
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            response = loop.run_until_complete(self.process_message_async(user_message))
+
+            # 如果返回None，表示不做任何反应
+            if response is None:
+                return True, None
+
+            return True, response.content
+        except Exception as e:
+            return False, f"处理消息时发生错误: {str(e)}"
+
+    async def process_message_async(self, message: UserMessage) -> Optional[BotResponse]:
+        """异步处理消息"""
         try:
             content = message.content.strip()
 
@@ -136,11 +162,8 @@ class MessageProcessor:
                 if match:
                     return await self._execute_handler(handler, message, match)
 
-            # 未匹配的消息
-            return BotResponse(
-                content="未识别的指令，输入 '帮助' 查看可用指令",
-                message_type=MessageType.UNKNOWN
-            )
+            # 未匹配的消息 - 不做任何反应
+            return None
 
         except Exception as e:
             return BotResponse(
@@ -688,8 +711,8 @@ class QQBotAdapter:
             group_id=group_id
         )
 
-        response = await self.message_processor.process_message(user_message)
-        return response.content
+        response = await self.message_processor.process_message_async(user_message)
+        return response.content if response else None
 
     async def handle_private_message(self, user_id: str, username: str, message: str) -> str:
         """处理私聊消息"""
@@ -699,8 +722,8 @@ class QQBotAdapter:
             content=message
         )
 
-        response = await self.message_processor.process_message(user_message)
-        return response.content
+        response = await self.message_processor.process_message_async(user_message)
+        return response.content if response else None
 
     def get_bot_response_with_mention(self, response: BotResponse, username: str) -> str:
         """获取带@的回复"""

@@ -1,0 +1,28 @@
+{
+  "plugins": {
+    "时间扭曲": {
+      "plugin_class": "TimeWarpTrap",
+      "name": "时间扭曲",
+      "description": "神秘的时间魔法让你困在时间循环中。",
+      "character_quote": "时间，是个圈儿。",
+      "penalty_description": "时间循环：下一轮必须重复上一轮的骰子结果\n如果上一轮失败，额外-20积分",
+      "position_config": {
+        "columns": [11],
+        "positions": [6]
+      },
+      "enabled": true
+    },
+    "幸运女神": {
+      "plugin_class": "LuckyGoddessTrap",
+      "name": "幸运女神",
+      "description": "幸运女神要求你做出选择，但她的恩赐总是带着代价。",
+      "character_quote": "选择吧，幸运还是实力？",
+      "penalty_description": "女神的选择：\n1. 下一轮骰子结果+1（但消耗双倍积分）\n2. 获得50积分（但下一轮骰子结果-1）",
+      "position_config": {
+        "columns": [14],
+        "positions": [4]
+      },
+      "enabled": true
+    }
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "achievements": {
+    "territory_awareness": {
+      "name": "🏠 领地意识",
+      "description": "回家吧孩子回家吧\n恭喜？您已在当前列回家三次，太倒霉啦！",
+      "category": "UNLUCKY",
+      "reward_description": "修改液 - 下一次掷骰可以将结果直接改变成上一轮行进竖列的任意两个数字",
+      "conditions": [
+        {
+          "type": "event_count",
+          "event": "player_died",
+          "count": 3,
+          "scope": "lifetime"
+        }
+      ]
+    },
+    "bad_luck_day": {
+      "name": "📅 出门没看黄历",
+      "description": "人总不能一直倒霉吧\n恭喜？您已遭遇三次首达陷阱，太倒霉啦！",
+      "category": "UNLUCKY",
+      "reward_description": "风水罗盘 - 下一次掷骰可以将任意一个数值的临时标记移动两格",
+      "conditions": [
+        {
+          "type": "event_count",
+          "event": "trap_first_time",
+          "count": 3,
+          "scope": "lifetime"
+        }
+      ]
+    },
+    "self_cruise": {
+      "name": "🎯 自巡航",
+      "description": "自巡航导弹但是是自己的自\n恭喜？您在使用道具的时候触发陷阱/自己触发惩罚，太倒霉啦！",
+      "category": "UNLUCKY",
+      "reward_description": "婴儿般的睡眠 - 下一回合免费",
+      "conditions": [
+        {
+          "type": "complex",
+          "description": "使用道具时触发陷阱/自己触发惩罚",
+          "check_function": "check_self_cruise"
+        }
+      ]
+    },
+    "one_turn_complete": {
+      "name": "⚡ 看我一命通关！",
+      "description": "真正的赌狗无惧挑战！\n恭喜您在一轮次内从起点到达列终点",
+      "category": "CHALLENGE",
+      "reward_description": "奇妙的变身器 - 特殊道具，具体效果待解锁后发现",
+      "conditions": [
+        {
+          "type": "single_turn_complete",
+          "description": "在一轮次内从起点到达列终点"
+        }
+      ]
+    },
+    "peaceful_life": {
+      "name": "🎭 平平淡淡才是真",
+      "description": "啊？还有这事？\n恭喜您在遭遇中三次选择结果均无事发生",
+      "category": "CHALLENGE",
+      "reward_description": "老头款大背心 - 纪念品道具",
+      "conditions": [
+        {
+          "type": "consecutive_peaceful_choices",
+          "count": 3
+        }
+      ]
+    },
+    "karma": {
+      "name": "🎲 善恶有报",
+      "description": "怪我吗？\n恭喜您在遭遇中三次选择结果均触发特殊效果",
+      "category": "CHALLENGE",
+      "reward_description": "游戏机打折券 - 商店相关优惠道具",
+      "conditions": [
+        {
+          "type": "consecutive_special_effects",
+          "count": 3
+        }
+      ]
+    },
+    "collector": {
+      "name": "📦 收集癖",
+      "description": "不拿全浑身难受啊\n恭喜您解锁全部地图及道具",
+      "category": "COLLECTION",
+      "reward_description": "协会的赞助奖金 - 大量积分奖励",
+      "conditions": [
+        {
+          "type": "collection_complete",
+          "items_required": ["all_items", "all_maps"]
+        }
+      ]
+    },
+    "fire_master": {
+      "name": "🔥 火球术大师",
+      "description": "体验魔法的不稳定性",
+      "category": "SPECIAL",
+      "reward_description": "火球术经验 - 特殊称号",
+      "conditions": [
+        {
+          "type": "trap_triggered",
+          "trap_name": "小小火球术"
+        }
+      ]
+    }
+  }
+}
