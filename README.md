@@ -11,10 +11,6 @@
 - 🛒 **道具商店系统** - 可购买和使用各种游戏道具
 - ⚔️ **阵营系统** - 收养人/Aonreth双阵营玩法
 
-### 💻 多样化界面
-- 🖥️ **CLI命令行界面** - 轻量级测试和游戏
-- 🎨 **PySide6图形界面** - 直观的可视化游戏体验
-- 📱 **QQ消息处理框架** - 完整的群聊机器人支持
 
 ### 🏗️ 技术优势
 - 💾 **数据持久化** - SQLAlchemy ORM，支持SQLite/PostgreSQL
@@ -41,9 +37,6 @@ pip install -r requirements.txt
 
 #### 🤖 启动QQ机器人
 ```bash
-# Windows用户（推荐）
-start_bot.bat
-
 # 或使用Python命令
 python start_bot.py
 
@@ -298,7 +291,6 @@ logging:
 ### 已完成功能 ✅
 - [x] 核心游戏引擎和规则实现
 - [x] 完整的数据持久化系统
-- [x] CLI和GUI测试界面
 - [x] QQ消息处理框架
 - [x] 配置管理和日志系统
 - [x] 异常处理和错误恢复
