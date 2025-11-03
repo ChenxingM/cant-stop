@@ -62,10 +62,10 @@ class PlayerManagementPanel(QWidget):
             QLabel {
                 font-size: 16px;
                 font-weight: bold;
-                color: #2c5aa0;
+                color: black;
                 padding: 10px;
-                background: #f0f8ff;
-                border: 2px solid #2c5aa0;
+                background: white;
+                border: 2px solid #cccccc;
                 border-radius: 8px;
                 margin-bottom: 10px;
             }
@@ -94,15 +94,15 @@ class PlayerManagementPanel(QWidget):
         self.add_player_btn = QPushButton("✅ 添加玩家")
         self.add_player_btn.setStyleSheet("""
             QPushButton {
-                background-color: #28a745;
-                color: white;
-                border: none;
+                background-color: white;
+                color: black;
+                border: 1px solid #cccccc;
                 padding: 8px 16px;
                 border-radius: 4px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #1e7e34;
+                background-color: #f0f0f0;
             }
         """)
         self.add_player_btn.clicked.connect(self.add_player)
@@ -127,15 +127,15 @@ class PlayerManagementPanel(QWidget):
         refresh_btn = QPushButton("🔄 刷新玩家列表")
         refresh_btn.setStyleSheet("""
             QPushButton {
-                background-color: #007bff;
-                color: white;
+                background-color: white;
+                color: black;
                 border: none;
                 padding: 8px 16px;
                 border-radius: 4px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #0056b3;
+                background-color: #f0f0f0;
             }
         """)
         refresh_btn.clicked.connect(self.refresh_players)
@@ -199,14 +199,14 @@ class PlayerManagementPanel(QWidget):
                 action_btn = QPushButton("🎮 进入游戏")
                 action_btn.setStyleSheet("""
                     QPushButton {
-                        background-color: #17a2b8;
-                        color: white;
+                        background-color: white;
+                        color: black;
                         border: none;
                         padding: 4px 8px;
                         border-radius: 4px;
                     }
                     QPushButton:hover {
-                        background-color: #117a8b;
+                        background-color: #e0e0e0;
                     }
                 """)
                 player_id = player.get("player_id", "")
@@ -310,14 +310,14 @@ class GameControlPanel(QWidget):
         sketch_btn = QPushButton("🎨 草图(+20)")
         sketch_btn.setStyleSheet("""
             QPushButton {
-                background-color: #28a745;
-                color: white;
+                background-color: white;
+                color: black;
                 border: none;
                 padding: 4px 8px;
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #1e7e34;
+                background-color: #f0f0f0;
             }
         """)
         sketch_btn.clicked.connect(lambda: self.award_points("草图"))
@@ -326,14 +326,14 @@ class GameControlPanel(QWidget):
         small_btn = QPushButton("🇺 精致小图(+80)")
         small_btn.setStyleSheet("""
             QPushButton {
-                background-color: #007bff;
-                color: white;
+                background-color: white;
+                color: black;
                 border: none;
                 padding: 4px 8px;
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #0056b3;
+                background-color: #f0f0f0;
             }
         """)
         small_btn.clicked.connect(lambda: self.award_points("精致小图"))
@@ -342,14 +342,14 @@ class GameControlPanel(QWidget):
         large_btn = QPushButton("🎭 精致大图(+150)")
         large_btn.setStyleSheet("""
             QPushButton {
-                background-color: #ffc107;
+                background-color: white;
                 color: black;
                 border: none;
                 padding: 4px 8px;
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #e0a800;
+                background-color: #f0f0f0;
             }
         """)
         large_btn.clicked.connect(lambda: self.award_points("精致大图"))
@@ -368,7 +368,7 @@ class GameControlPanel(QWidget):
         self.output_text.setReadOnly(True)
         self.output_text.setStyleSheet("""
             QTextEdit {
-                background-color: #f8f9fa;
+                background-color: white;
                 border: 1px solid #dee2e6;
                 font-family: monospace;
                 font-size: 12px;
@@ -567,7 +567,7 @@ class GodModeGUI(QMainWindow):
         main_layout.addWidget(middle_widget, 4)
 
         # 右侧面板 - GM总览 (较窄)
-        gm_overview = GMOverviewPanel(self.game_service)
+        gm_overview = GMOverviewPanel(self.game_service, self)
         main_layout.addWidget(gm_overview, 2)
 
         # 保存引用以便后续使用
@@ -617,47 +617,60 @@ class GodModeGUI(QMainWindow):
         try:
             # 获取所有玩家的游戏状态
             success, players = self.game_service.get_all_players()
-            if success:
-                # 清空地图
-                for cell in self.game_board.cells.values():
-                    cell.set_empty()
+            if not success:
+                return
 
-                # 更新每个玩家的位置
-                for i, player in enumerate(players):
-                    player_name = player.get('username', '')
-                    player_id = player.get('player_id', '')
+            # 清空地图
+            for cell in self.game_board.cells.values():
+                cell.set_empty()
 
-                    # 获取玩家的游戏会话
-                    db_player = self.game_service.db.get_player(player_id)
-                    if db_player and hasattr(db_player, 'progress_records'):
-                        # 永久标记
-                        for progress in db_player.progress_records:
-                            if progress.is_completed:
-                                column = progress.column
-                                max_row = 13 - abs(7 - column)  # 计算最大行数
-                                cell_key = f"{column}_{max_row}"
+            # 更新每个玩家的位置
+            for i, player in enumerate(players):
+                player_name = player.get('username', '')
+                player_id = player.get('player_id', '')
+
+                # 获取玩家数据
+                db_player = self.game_service.db.get_player(player_id)
+                if db_player:
+                    # 检查永久进度
+                    if hasattr(db_player, 'progress') and db_player.progress and db_player.progress.permanent_progress:
+                        for column, position in db_player.progress.permanent_progress.items():
+                            if position > 0:
+                                cell_key = f"{column}_{position}"
                                 if cell_key in self.game_board.cells:
                                     self.game_board.cells[cell_key].add_player(player_name, i % 8, is_permanent=True)
 
-                    # 获取临时标记
-                    session = self.game_service.db.get_player_active_session(player_id)
-                    if session and hasattr(session, 'temporary_markers'):
-                        for marker in session.temporary_markers:
-                            column = marker.column
-                            position = marker.position  # TemporaryMarker使用position而不是row
-                            cell_key = f"{column}_{position}"
-                            if cell_key in self.game_board.cells:
-                                self.game_board.cells[cell_key].add_player(player_name, i % 8, is_permanent=False)
+                # 获取临时标记
+                session = self.game_service.db.get_player_active_session(player_id)
+                if session and hasattr(session, 'temporary_markers') and session.temporary_markers:
+                    for marker in session.temporary_markers:
+                        column = marker.column
+                        # 临时标记应该显示在：永久进度 + 临时位置
+                        permanent_position = 0
+                        if db_player and hasattr(db_player, 'progress') and db_player.progress:
+                            permanent_position = db_player.progress.get_progress(column)
+
+                        total_position = permanent_position + marker.position
+                        cell_key = f"{column}_{total_position}"
+                        if cell_key in self.game_board.cells:
+                            self.game_board.cells[cell_key].add_player(player_name, i % 8, is_permanent=False)
 
         except Exception as e:
             print(f"刷新地图失败: {e}")
+            import traceback
+            traceback.print_exc()
 
     def apply_styles(self):
-        """应用样式"""
+        """应用样式 - 白色背景，黑色文字"""
         style = """
         QMainWindow {
-            background: #f5f5f5;
+            background: white;
+            color: black;
             font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+        }
+        QWidget {
+            background: white;
+            color: black;
         }
         QGroupBox {
             font-weight: bold;
@@ -665,46 +678,79 @@ class GodModeGUI(QMainWindow):
             border-radius: 8px;
             margin-top: 10px;
             padding-top: 10px;
+            background: white;
+            color: black;
         }
         QGroupBox::title {
             subcontrol-origin: margin;
             left: 10px;
             padding: 0 10px 0 10px;
+            color: black;
+        }
+        QLabel {
+            color: black;
+            background: transparent;
         }
         QPushButton {
-            background-color: #6c757d;
-            color: white;
-            border: none;
+            background-color: white;
+            color: black;
+            border: 1px solid #cccccc;
             padding: 8px 16px;
             border-radius: 4px;
             font-weight: bold;
         }
         QPushButton:hover {
-            background-color: #545b62;
+            background-color: #f0f0f0;
+            border: 1px solid #999999;
+        }
+        QPushButton:pressed {
+            background-color: #e0e0e0;
         }
         QPushButton:disabled {
-            background-color: #e9ecef;
-            color: #6c757d;
+            background-color: #f5f5f5;
+            color: #999999;
         }
         QLineEdit, QSpinBox, QComboBox {
             padding: 8px;
-            border: 1px solid #ced4da;
+            border: 1px solid #cccccc;
             border-radius: 4px;
             background-color: white;
+            color: black;
+        }
+        QTextEdit {
+            background-color: white;
+            color: black;
+            border: 1px solid #cccccc;
+        }
+        QListWidget {
+            background-color: white;
+            color: black;
+            border: 1px solid #cccccc;
         }
         QTableWidget {
-            gridline-color: #dee2e6;
+            gridline-color: #cccccc;
             background-color: white;
-            alternate-background-color: #f8f9fa;
+            color: black;
+            alternate-background-color: white;
         }
         QTableWidget::item {
             padding: 8px;
+            color: black;
         }
         QHeaderView::section {
-            background-color: #e9ecef;
+            background-color: white;
+            color: black;
             padding: 8px;
-            border: 1px solid #dee2e6;
+            border: 1px solid #cccccc;
             font-weight: bold;
+        }
+        QProgressBar {
+            background-color: white;
+            border: 1px solid #cccccc;
+            color: black;
+        }
+        QProgressBar::chunk {
+            background-color: #cccccc;
         }
         """
         self.setStyleSheet(style)

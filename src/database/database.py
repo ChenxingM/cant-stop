@@ -182,7 +182,7 @@ class DatabaseManager:
 
             # 更新基本信息
             player_db.username = player.username
-            player_db.faction = player.faction
+            player_db.faction = player.faction  # 允许修改阵营
             player_db.current_score = player.current_score
             player_db.total_score = player.total_score
             player_db.games_played = player.games_played

@@ -28,9 +28,9 @@ class GameEngine:
 
     def _init_map_events(self):
         """初始化地图事件"""
-        # 陷阱配置 - 与trap_system.py保持一致
-        # 使用陷阱配置管理器生成陷阱位置
-        self.regenerate_traps()
+        # 从配置文件加载现有陷阱（不生成新的随机陷阱）
+        # 这样可以保持陷阱状态，直到GM手动重置或随机生成
+        self.update_map_events_from_config()
 
         # 添加固定的道具和遭遇事件
         fixed_events = [
@@ -89,6 +89,13 @@ class GameEngine:
             if position_key not in self.map_events:
                 self.map_events[position_key] = []
             self.map_events[position_key].append(event)
+
+    def reload_traps_from_config(self):
+        """从配置文件重新加载陷阱数据（确保获取最新配置）"""
+        # 重新从文件加载配置
+        self.trap_config.load_config()
+        # 更新map_events
+        self.update_map_events_from_config()
 
     def update_map_events_from_config(self):
         """仅根据当前陷阱配置更新map_events，不重新生成随机陷阱"""
@@ -169,6 +176,17 @@ class GameEngine:
         player = self.get_player(session.player_id)
         if not player:
             raise ValueError(f"玩家 {session.player_id} 不存在")
+
+        # 检查轮次状态 - 只有在特定状态下才能掷骰子
+        if session.turn_state == TurnState.WAITING_FOR_SUMMIT_CONFIRMATION:
+            pending_columns = ', '.join([f'数列{c}登顶' for c in session.pending_summit_columns])
+            raise ValueError(f"⚠️ 请先确认登顶！\n待确认的列: {pending_columns}")
+
+        if session.turn_state == TurnState.WAITING_FOR_CHECKIN:
+            raise ValueError("⚠️ 请先完成打卡！输入 '打卡完毕' 继续游戏")
+
+        if session.turn_state not in [TurnState.DICE_ROLL, TurnState.DECISION]:
+            raise ValueError(f"当前状态 ({session.turn_state.value}) 无法掷骰子")
 
         # 检查积分是否足够
         dice_cost = get_config("game_config", "game.dice_cost", 10)
@@ -260,12 +278,49 @@ class GameEngine:
             if not valid:
                 return False, f"骰子结果无法组合出 {column}"
 
+        # 检查移动后是否会超过列的最大高度
+        # 统计每列需要移动的次数
+        column_moves = {}
+        for column in target_columns:
+            column_moves[column] = column_moves.get(column, 0) + 1
+
+        for column, move_count in column_moves.items():
+            # 获取该列的最大高度
+            column_length = self.map_config.get_column_length(column)
+
+            # 获取永久进度
+            permanent_progress = player.progress.get_progress(column)
+
+            # 获取当前临时标记位置
+            existing_marker = session.get_temporary_marker(column)
+            current_temp_position = existing_marker.position if existing_marker else 0
+
+            # 计算移动后的总位置
+            new_total_position = permanent_progress + current_temp_position + move_count
+
+            # 检查是否超过列的最大高度
+            if new_total_position > column_length:
+                return False, f"❌ 列 {column} 移动后位置将超过最大高度！\n📏 列 {column} 最大高度: {column_length}\n📍 当前永久进度: {permanent_progress}\n🎯 当前临时位置: {current_temp_position}\n➕ 本次移动: {move_count}\n❗ 总位置将达到: {new_total_position} (超出限制)"
+
         return True, "可以移动"
 
     def move_markers(self, session_id: str, target_columns: List[int]) -> Tuple[bool, str]:
         """移动临时标记"""
         can_move, message = self.can_move_markers(session_id, target_columns)
         if not can_move:
+            # 特殊处理：如果是标记数量超过3个，清空临时标记并强制结束轮次
+            if "临时标记数量不能超过3个" in message:
+                session = self.get_game_session(session_id)
+                if session:
+                    # 清空所有临时标记（失去本轮进度）
+                    session.clear_temporary_markers()
+
+                    # 强制结束轮次，需要打卡
+                    session.needs_checkin = True
+                    session.turn_state = TurnState.WAITING_FOR_CHECKIN
+
+                    return False, "❌ 临时标记数量不能超过3个！\n⚠️ 已清空所有临时标记\n💔 本轮进度丢失\n📝 请完成打卡后继续游戏"
+
             return False, message
 
         session = self.get_game_session(session_id)
@@ -305,42 +360,62 @@ class GameEngine:
         else:
             return True, base_message
 
-    def _check_column_completions(self, session_id: str):
-        """检查列完成情况"""
+    def _check_column_completions(self, session_id: str) -> List[int]:
+        """检查列完成情况，返回待确认的登顶列"""
         session = self.get_game_session(session_id)
         player = self.get_player(session.player_id)
 
-        completed_columns = []
+        pending_completions = []
 
         for marker in session.temporary_markers[:]:  # 复制列表以避免修改时的问题
             column_length = self.map_config.get_column_length(marker.column)
             total_progress = player.progress.get_progress(marker.column) + marker.position
 
             if total_progress >= column_length:
-                # 登顶！更新玩家永久进度
-                player.progress.set_progress(marker.column, column_length)
-                completed_columns.append(marker.column)
+                # 检测到登顶，但不立即完成，需要用户确认
+                if marker.column not in session.pending_summit_columns:
+                    pending_completions.append(marker.column)
+                    session.pending_summit_columns.append(marker.column)
 
-                # 清空该列所有玩家的临时标记
-                self._clear_column_temporary_markers(marker.column)
+        # 如果有待确认的登顶，切换到等待确认状态
+        if pending_completions:
+            session.turn_state = TurnState.WAITING_FOR_SUMMIT_CONFIRMATION
+            # 打印提示消息
+            for column in pending_completions:
+                print(f"🎊 检测到第{column}列登顶！")
+            print(f"\n⚠️ 请输入 '数列{pending_completions[0]}登顶' 来确认登顶")
+            if len(pending_completions) > 1:
+                print(f"多个列登顶，请依次确认: {', '.join([f'数列{c}登顶' for c in pending_completions])}")
 
-        # 如果有登顶，触发登顶奖励和消息
-        if completed_columns:
-            self._handle_column_completions(session_id, completed_columns)
+        return pending_completions
 
     def _clear_column_temporary_markers(self, column: int):
         """清空指定列的所有临时标记"""
         for session in self.game_sessions.values():
             session.remove_temporary_marker(column)
 
-    def _handle_column_completions(self, session_id: str, completed_columns: List[int]):
-        """处理列完成（登顶）事件"""
+    def _handle_column_completions(self, session_id: str, completed_columns: List[int]) -> str:
+        """处理列完成（登顶）事件，返回奖励信息"""
         session = self.get_game_session(session_id)
         player = self.get_player(session.player_id)
 
+        reward_messages = []
+
         for column in completed_columns:
-            print(f"🎉 恭喜您在{column}列登顶～")
-            print("已清空该列场上所有临时标记。")
+            column_messages = []
+            column_messages.append(f"🎉 恭喜您在第{column}列登顶～")
+
+            # 更新玩家永久进度
+            column_length = self.map_config.get_column_length(column)
+            player.progress.set_progress(column, column_length)
+
+            # 清空该列所有玩家的临时标记
+            self._clear_column_temporary_markers(column)
+            column_messages.append("已清空该列场上所有临时标记。")
+
+            # 检查是否是首次登顶该列（首达奖励）
+            # 注意：set_progress 已经将列添加到 completed_columns，所以这里是首次
+            is_first_time = True  # 因为刚刚才添加到 completed_columns
 
             # 登顶奖励逻辑
             base_reward = 50  # 基础奖励
@@ -348,33 +423,94 @@ class GameEngine:
             total_reward = base_reward + column_reward
 
             player.add_score(total_reward, f"登顶奖励-第{column}列")
-            print(f"✦登顶奖励")
-            print(f"恭喜您获得 {total_reward} 积分")
+            column_messages.append(f"✦登顶奖励")
+            column_messages.append(f"恭喜您获得 {total_reward} 积分")
+
+            # 首达奖励（只在首次登顶时给予）
+            if is_first_time:
+                column_messages.append("✦首达奖励")
+                first_time_bonus = 20
+                player.add_score(first_time_bonus, f"首达奖励-第{column}列")
+                column_messages.append(f"恭喜您在该列首次登顶，获得 {first_time_bonus} 积分")
 
             # 发布列完成事件
             emit_game_event(GameEventType.COLUMN_COMPLETED, session.player_id, {
                 "column": column,
                 "reward": total_reward,
                 "session_id": session_id,
-                "starting_progress": 0,  # 可以根据实际情况调整
+                "starting_progress": 0,
                 "completed_columns_count": player.progress.get_completed_count()
             }, session_id)
 
-            # 检查是否是首次登顶该列（首达奖励）
-            # 这里可以根据需要添加首达奖励逻辑
-            print("✦首达奖励")
-            first_time_bonus = 20
-            player.add_score(first_time_bonus, f"首达奖励-第{column}列")
-            print(f"恭喜您在该列首次登顶，获得 {first_time_bonus} 积分")
+            reward_messages.append("\n".join(column_messages))
 
         # 检查是否获胜（3列登顶）
         if player.progress.is_winner():
-            print("🎊 恭喜您获胜！您已在3列登顶！")
+            reward_messages.append("🎊 恭喜您获胜！您已在3列登顶！")
             session.state = GameState.COMPLETED
             player.games_won += 1
 
+        return "\n".join(reward_messages)
+
+    def confirm_summit(self, session_id: str, column: int) -> Tuple[bool, str]:
+        """确认登顶指定列"""
+        session = self.get_game_session(session_id)
+        if not session:
+            return False, "会话不存在"
+
+        player = self.get_player(session.player_id)
+        if not player:
+            return False, "玩家不存在"
+
+        # 检查是否在等待登顶确认状态
+        if session.turn_state != TurnState.WAITING_FOR_SUMMIT_CONFIRMATION:
+            return False, "当前不在等待登顶确认状态"
+
+        # 如果待确认列表为空，自动检测所有达到登顶的列（处理GM手动修改的情况）
+        if not session.pending_summit_columns:
+            for marker in session.temporary_markers:
+                column_length = self.map_config.get_column_length(marker.column)
+                total_progress = player.progress.get_progress(marker.column) + marker.position
+                if total_progress >= column_length:
+                    session.pending_summit_columns.append(marker.column)
+
+        # 检查该列是否实际达到登顶（支持GM手动修改的情况）
+        marker = session.get_temporary_marker(column)
+        if marker:
+            column_length = self.map_config.get_column_length(column)
+            total_progress = player.progress.get_progress(column) + marker.position
+
+            # 如果该列确实达到登顶，但不在待确认列表中，自动添加
+            if total_progress >= column_length and column not in session.pending_summit_columns:
+                session.pending_summit_columns.append(column)
+
+        # 检查该列是否在待确认列表中
+        if column not in session.pending_summit_columns:
+            return False, f"第{column}列未在待确认登顶列表中\n💡 当前待确认列表: {session.pending_summit_columns}"
+
+        # 执行登顶确认，获取奖励信息
+        reward_message = self._handle_column_completions(session_id, [column])
+
+        # 从待确认列表中移除
+        session.pending_summit_columns.remove(column)
+
+        # 检查是否还有待确认的列
+        if len(session.pending_summit_columns) == 0:
+            # 所有列都已确认，恢复到决策状态
+            session.turn_state = TurnState.DECISION
+            final_message = f"{reward_message}\n\n✅ 所有登顶已确认，可以继续游戏！"
+            return True, final_message
+        else:
+            # 还有其他列待确认
+            next_column = session.pending_summit_columns[0]
+            final_message = f"{reward_message}\n\n⚠️ 请继续确认：数列{next_column}登顶"
+            return True, final_message
+
     def _check_and_trigger_events(self, session_id: str, moved_columns: List[int]) -> str:
         """检查并触发地图事件"""
+        # 重新加载陷阱配置（确保获取最新的陷阱数据）
+        self.reload_traps_from_config()
+
         session = self.get_game_session(session_id)
         player = self.get_player(session.player_id)
         event_messages = []
@@ -509,6 +645,12 @@ class GameEngine:
         if not player:
             return False, "玩家不存在"
 
+        # 检查是否有待确认的登顶（在主动结束前必须确认所有登顶）
+        pending_completions = self._check_column_completions(session_id)
+        if pending_completions:
+            # 有待确认的登顶，需要先确认
+            return False, f"检测到登顶！请先确认：{', '.join([f'数列{c}登顶' for c in pending_completions])}"
+
         # 将临时标记转换为永久进度
         for marker in session.temporary_markers:
             current_permanent = player.progress.get_progress(marker.column)
@@ -526,7 +668,7 @@ class GameEngine:
 
         # 需要打卡后才能开始下轮
         session.needs_checkin = True
-        session.turn_state = TurnState.ENDED
+        session.turn_state = TurnState.WAITING_FOR_CHECKIN
 
         return True, "轮次结束，请完成打卡后继续游戏"
 

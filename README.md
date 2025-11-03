@@ -35,39 +35,50 @@ cd cant-stop-bot
 pip install -r requirements.txt
 ```
 
-### 2. 运行游戏
+### 2. 启动程序
 
-#### CLI界面（推荐首次使用）
+本项目提供两个主要入口：
+
+#### 🤖 启动QQ机器人
 ```bash
-# 方式一：使用批处理文件（Windows推荐）
-demo.bat                # 演示模式
-run_cli.bat             # CLI游戏
+# Windows用户（推荐）
+start_bot.bat
 
-# 方式二：命令行启动
-set PYTHONIOENCODING=utf-8              # Windows
-python main.py --interface cli --demo  # 演示模式
-python main.py --interface cli         # 正常游戏
+# 或使用Python命令
+python start_bot.py
+
+# 使用指定配置文件
+python start_bot.py --config config/lagrange_bot_config.json
+
+# 创建示例配置文件
+python start_bot.py --create-example
 ```
 
-#### GUI界面
+#### 🎮 启动上帝模式GUI（游戏管理界面）
 ```bash
-# 方式一：使用批处理文件（Windows推荐）
-run_gui.bat             # GUI界面
+# Windows用户（推荐）
+start_gm.bat
 
-# 方式二：命令行启动
-set PYTHONIOENCODING=utf-8              # Windows
-python main.py --interface gui
+# 或使用Python命令
+python start_god_mode.py
 ```
 
-### 3. 基本游戏流程
-```bash
-# CLI中的基本操作
-register 张三 收养人    # 注册玩家
-start                   # 开始游戏
-roll                    # 掷骰子
-8,13                    # 选择数值组合
-end                     # 结束回合
-status                  # 查看状态
+上帝模式GUI提供：
+- 👥 玩家管理 - 添加/查看所有玩家
+- 🎮 游戏控制 - 掷骰、结束轮次、修改积分
+- 🗺️ 游戏地图 - 实时显示所有玩家位置
+- 📊 GM视角 - 游戏统计和详细信息
+
+### 3. 基本游戏流程（QQ群内）
+
+```
+选择阵营：收养人      # 注册并选择阵营
+轮次开始              # 开始游戏
+领取草图奖励1         # 获取积分
+掷骰                  # 掷骰子
+8,13                  # 选择数值组合
+替换永久棋子          # 结束回合
+打卡完毕              # 完成打卡
 ```
 
 ## 🎯 游戏玩法
@@ -274,11 +285,13 @@ logging:
 
 ## 📚 文档资源
 
-- [详细使用指南](USAGE.md) - 完整的使用说明
+- [详细使用指南](docs/USAGE.md) - 完整的使用说明
 - [游戏规则说明](docs/游戏规则说明书.md) - 官方游戏规则
 - [指令参考手册](docs/机器人指令完整手册.md) - 所有可用指令
 - [陷阱与成就系统](docs/陷阱与成就系统详解.md) - 特色系统说明
 - [数据库设计方案](docs/CantStop数据库设计方案.md) - 技术架构文档
+- [上帝模式说明](docs/README_GOD_MODE.md) - GM界面使用指南
+- [Claude Code 指南](CLAUDE.md) - AI辅助开发指南
 
 ## 🔧 开发状态
 

@@ -29,7 +29,9 @@ class TurnState(Enum):
     DICE_ROLL = "dice_roll"      # 掷骰阶段
     MOVE_MARKERS = "move_markers" # 移动标记阶段
     DECISION = "decision"         # 决策阶段
+    WAITING_FOR_SUMMIT_CONFIRMATION = "waiting_for_summit_confirmation"  # 等待登顶确认
     ENDED = "ended"              # 轮次结束
+    WAITING_FOR_CHECKIN = "waiting_for_checkin"  # 等待打卡
 
 
 class EventType(Enum):
@@ -214,6 +216,7 @@ class GameSession:
     first_turn: bool = True  # 是否首轮
     needs_checkin: bool = False  # 是否需要打卡
     forced_dice_result: Optional[List[int]] = None  # 强制骰子结果
+    pending_summit_columns: List[int] = field(default_factory=list)  # 待确认的登顶列
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 

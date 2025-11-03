@@ -1,13 +1,15 @@
 {
   "platform": "lagrange",
   "websocket": {
-    "url": "ws://127.0.0.1:8080/onebot/v11/ws",
+    "url": "ws://127.0.0.2:8081/onebot/v11/ws",
+    "access_token": "6}#3xKUJ-?VREQbz",
     "reconnect": true,
     "timeout": 30
   },
   "bot": {
     "allowed_groups": [
-      541674420
+      541674420,
+      329182491
     ],
     "admin_users": [
       1234567890

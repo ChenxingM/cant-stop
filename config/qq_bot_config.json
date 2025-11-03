@@ -1,11 +1,11 @@
 {
   "onebot": {
-    "url": "http://127.0.0.1:3001",
+    "url": "http://127.0.0.2:3001",
     "timeout": 30
   },
   "bot": {
-    "listen_host": "127.0.0.1",
-    "listen_port": 8080,
+    "listen_host": "127.0.0.2",
+    "listen_port": 8081,
     "allowed_groups": [],
     "admin_users": [],
     "auto_register": true

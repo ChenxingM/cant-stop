@@ -12,7 +12,8 @@ from typing import Dict, Any, List, Optional
 @dataclass
 class WebSocketConfig:
     """WebSocket配置"""
-    url: str = "ws://127.0.0.1:8080/onebot/v11/ws"
+    url: str = "ws://127.0.0.2:8081/onebot/v11/ws"
+    access_token: Optional[str] = None
     reconnect: bool = True
     timeout: int = 30
 
@@ -69,7 +70,8 @@ class ConfigManager:
         return BotConfig(
             platform=platform,
             websocket=WebSocketConfig(
-                url="ws://127.0.0.1:8080/onebot/v11/ws",
+                url="ws://127.0.0.2:8081/onebot/v11/ws",
+                access_token=None,  # 如果服务器需要验证，填入token
                 reconnect=True,
                 timeout=30
             ),

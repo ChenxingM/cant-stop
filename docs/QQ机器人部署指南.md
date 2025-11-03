@@ -66,16 +66,31 @@ pip install -r requirements.txt
       "Suffix": "/onebot",
       "ReconnectInterval": 5000,
       "HeartBeatInterval": 5000,
-      "AccessToken": ""
+      "AccessToken": "YOUR_SECRET_TOKEN_HERE"
     },
     {
       "Type": "Http",
       "Host": "127.0.0.1",
       "Port": 3001,
-      "AccessToken": ""
+      "AccessToken": "YOUR_SECRET_TOKEN_HERE"
     }
   ]
 }
+```
+
+**重要说明**:
+- `AccessToken`: 访问令牌，用于保护您的机器人安全
+- 建议使用复杂的随机字符串作为token（例如：`6}#3xKUJ-?VREQbz`）
+- 如果不需要验证，可以留空（不推荐用于生产环境）
+- **请妥善保管您的token，不要泄露给他人**
+
+```bash
+# 生成随机token的方法（可选）
+# Linux/macOS
+openssl rand -base64 16
+
+# Python
+python -c "import secrets; print(secrets.token_urlsafe(16))"
 ```
 
 ### 3. 启动Lagrange.OneBot
@@ -96,7 +111,27 @@ pip install -r requirements.txt
 
 ### 1. 配置机器人
 
-编辑 `config/qq_bot_config.json`：
+编辑 `config/bot_config.json`（推荐使用统一配置格式）：
+
+```json
+{
+  "platform": "lagrange",
+  "websocket": {
+    "url": "ws://127.0.0.2:8081/onebot/v11/ws",
+    "access_token": "YOUR_SECRET_TOKEN_HERE",
+    "reconnect": true,
+    "timeout": 30
+  },
+  "bot": {
+    "allowed_groups": [541674420, 329182491],
+    "admin_users": [1234567890],
+    "auto_register": true,
+    "default_faction": "收养人"
+  }
+}
+```
+
+**或使用旧版配置** `config/qq_bot_config.json`：
 
 ```json
 {
@@ -127,7 +162,15 @@ pip install -r requirements.txt
 
 ### 2. 配置说明
 
-#### OneBot配置
+#### WebSocket配置（统一配置格式）
+- `url`: WebSocket连接地址
+- `access_token`: 访问令牌，**必须与Lagrange.OneBot配置中的AccessToken一致**
+- `reconnect`: 是否自动重连
+- `timeout`: 连接超时时间（秒）
+
+**重要**: `access_token` 必须与 Lagrange.OneBot 的 `appsettings.json` 中配置的 `AccessToken` 完全一致，否则连接会被拒绝。
+
+#### OneBot配置（旧版格式）
 - `url`: Lagrange.OneBot的HTTP API地址
 - `timeout`: API请求超时时间
 
@@ -136,6 +179,7 @@ pip install -r requirements.txt
 - `allowed_groups`: 允许的QQ群号列表（空数组表示所有群）
 - `admin_users`: 管理员QQ号列表
 - `auto_register`: 是否自动注册新用户
+- `default_faction`: 默认阵营（收养人/Aonreth）
 
 #### 消息配置
 - `use_emoji`: 是否使用emoji
@@ -148,12 +192,28 @@ pip install -r requirements.txt
 
 ## 🚀 第三步：启动机器人
 
-### 方法1: 使用启动器（推荐）
+### 方法1: 使用统一启动器（推荐）
 
 ```bash
 # 进入项目目录
 cd cant-stop-bot
 
+# 使用默认配置启动
+python start_bot.py
+
+# 指定配置文件
+python start_bot.py --config config/bot_config.json
+
+# 创建示例配置文件
+python start_bot.py --create-example
+
+# 使用Windows批处理脚本
+start_bot.bat
+```
+
+### 方法2: 使用旧版启动器
+
+```bash
 # 启动机器人
 python -m src.bots.bot_launcher
 
@@ -291,6 +351,24 @@ regenerate_traps - 重新生成陷阱
 ## 🐛 故障排除
 
 ### 常见问题
+
+#### 0. WebSocket连接失败/401错误
+```bash
+# 检查access_token是否一致
+# 1. 查看Lagrange.OneBot的配置
+cat appsettings.json | grep AccessToken
+
+# 2. 查看机器人配置
+cat config/bot_config.json | grep access_token
+
+# 3. 确保两个token完全一致（包括大小写）
+# 4. 如果不需要验证，可以将两边的token都设为空字符串或null
+```
+
+**常见错误**:
+- ❌ 连接被拒绝: token不匹配
+- ❌ 401 Unauthorized: token验证失败
+- ✅ 连接成功: token一致或都为空
 
 #### 1. 机器人无响应
 ```bash

@@ -61,15 +61,16 @@ class MessageProcessor:
             "轮次开始": self._handle_start_turn,
             "掷骰": self._handle_roll_dice,
             ".r6d6": self._handle_roll_dice,
+            "重投": self._handle_reroll_dice,
             "替换永久棋子": self._handle_end_turn,
             "查看当前进度": self._handle_get_status,
             "打卡完毕": self._handle_complete_checkin,
 
-            # 积分奖励
-            "领取草图奖励": lambda msg: self._handle_add_score(msg, "草图"),
-            "领取精致小图奖励": lambda msg: self._handle_add_score(msg, "精致小图"),
-            "领取精草大图奖励": lambda msg: self._handle_add_score(msg, "精草大图"),
-            "领取精致大图奖励": lambda msg: self._handle_add_score(msg, "精致大图"),
+            # 积分奖励（图片奖励已禁用）
+            # "领取草图奖励": lambda msg: self._handle_add_score(msg, "草图"),
+            # "领取精致小图奖励": lambda msg: self._handle_add_score(msg, "精致小图"),
+            # "领取精草大图奖励": lambda msg: self._handle_add_score(msg, "精草大图"),
+            # "领取精致大图奖励": lambda msg: self._handle_add_score(msg, "精致大图"),
 
             # 商店系统
             "道具商店": self._handle_shop,
@@ -97,16 +98,21 @@ class MessageProcessor:
 
         # 注册模式处理器
         self.pattern_handlers.extend([
+            # 登顶确认（必须在数字组合之前匹配）
+            (r"^数列(\d+)登顶$", self._handle_summit_confirmation),
+
             # 阵营选择：xxx
             (r"选择阵营：(.+)", self._handle_faction_selection_with_param),
 
-            # 数值组合 (8,13 或 单个数字)
-            (r"^(\d+),(\d+)$", self._handle_move_two_markers),
-            (r"^(\d+)$", self._handle_move_one_marker),
+            # 数值组合 (8,13 或 单个数字) - 允许前后有空格
+            (r"^\s*(\d+)\s*,\s*(\d+)\s*$", self._handle_move_two_markers),
+            (r"^\s*(\d+)\s*$", self._handle_move_one_marker),
 
-            # 领取奖励
-            (r"领取(.+)奖励(\d+)", self._handle_reward_with_number),
+            # 超常发挥奖励（支持倍数）
             (r"我超级满意这张图(\d+)", self._handle_super_satisfied),
+
+            # 领取奖励（图片奖励已禁用）
+            # (r"领取(.+)奖励(\d+)", self._handle_reward_with_number),
 
             # 道具操作
             (r"购买(.+)", self._handle_buy_specific_item),
@@ -227,6 +233,42 @@ class MessageProcessor:
         if success and combinations:
             combo_text = "、".join([f"{c[0]},{c[1]}" for c in combinations])
             msg += f"\n可选组合：{combo_text}"
+
+        return BotResponse(
+            content=msg,
+            message_type=MessageType.GAME_ACTION,
+            should_mention=True,
+            additional_data={"combinations": combinations} if success else None
+        )
+
+    def _handle_reroll_dice(self, message: UserMessage) -> BotResponse:
+        """处理重投骰子（使用银骰子祝福）"""
+        # 检查玩家是否拥有银骰子祝福
+        player = self.game_service.db.get_player(message.user_id)
+        if not player:
+            return BotResponse(
+                content="无法找到玩家信息！",
+                message_type=MessageType.GAME_ACTION
+            )
+
+        if "银骰子祝福" not in player.inventory:
+            return BotResponse(
+                content="你没有银骰子祝福！只有获得银骰子祝福后才能重投。",
+                message_type=MessageType.GAME_ACTION
+            )
+
+        # 消耗银骰子祝福
+        player.inventory.remove("银骰子祝福")
+        self.game_service.db.update_player(player)
+
+        # 重新掷骰（不扣积分）
+        success, msg, combinations = self.game_service.roll_dice(message.user_id, free_roll=True)
+
+        if success and combinations:
+            combo_text = "、".join([f"{c[0]},{c[1]}" for c in combinations])
+            msg = f"🌟 使用银骰子祝福重投！\n{msg}\n可选组合：{combo_text}"
+        else:
+            msg = f"🌟 使用银骰子祝福重投！\n{msg}"
 
         return BotResponse(
             content=msg,
@@ -380,15 +422,33 @@ class MessageProcessor:
         )
 
     def _handle_super_satisfied(self, message: UserMessage, match: re.Match) -> BotResponse:
-        """处理超常发挥奖励"""
-        number = match.group(1)
-        success, msg = self.game_service.add_score(message.user_id, 0, "超常发挥")
+        """处理超常发挥奖励（支持倍数）"""
+        try:
+            multiplier = int(match.group(1))
+            if multiplier <= 0:
+                return BotResponse(
+                    content="❌ 倍数必须为正整数",
+                    message_type=MessageType.ERROR,
+                    should_mention=True
+                )
 
-        return BotResponse(
-            content=msg,
-            message_type=MessageType.SCORE_REWARD,
-            should_mention=True
-        )
+            # 基础积分30，乘以倍数
+            base_score = 30
+            final_score = base_score * multiplier
+
+            success, msg = self.game_service.add_score(message.user_id, final_score, f"超常发挥×{multiplier}")
+
+            return BotResponse(
+                content=msg,
+                message_type=MessageType.SCORE_REWARD,
+                should_mention=True
+            )
+        except ValueError:
+            return BotResponse(
+                content="❌ 倍数必须为有效数字",
+                message_type=MessageType.ERROR,
+                should_mention=True
+            )
 
     # 商店系统处理器
     def _handle_shop(self, message: UserMessage) -> BotResponse:
@@ -500,11 +560,8 @@ class MessageProcessor:
 
 💰 积分奖励
 -----------
-领取草图奖励1 - 草图作品奖励(+20积分)
-领取精致小图奖励1 - 精致小图奖励(+80积分)
-领取精草大图奖励1 - 精草大图奖励(+100积分)
-领取精致大图奖励1 - 精致大图奖励(+150积分)
-我超级满意这张图1 - 超常发挥奖励(+30积分)
+我超级满意这张图X - 获得积分奖励(基础30×倍数X)
+  例: 我超级满意这张图5 = 30×5 = 150积分
 
 🛒 道具商店
 -----------
@@ -550,9 +607,6 @@ class MessageProcessor:
 
     def _process_trap_choice(self, message: UserMessage, choice: str) -> BotResponse:
         """处理陷阱选择的具体逻辑"""
-        # 这里应该调用游戏服务的陷阱选择处理方法
-        # 目前先返回确认消息，等待游戏服务实现具体逻辑
-
         choice_responses = {
             "都是我掉的": "土地神：「贪心的人类啊！」你失去了所有临时标记！",
             "金骰子": "土地神：「很好，诚实的孩子。」你获得了金骰子的祝福！下次掷骰结果+1！",
@@ -562,6 +616,42 @@ class MessageProcessor:
         }
 
         response_text = choice_responses.get(choice, f"你选择了：{choice}")
+
+        # 处理陷阱选择的具体效果
+        if choice == "普通d6骰子":
+            # 给予10积分奖励
+            success, score_msg = self.game_service.add_score(message.user_id, 10, "河神陷阱奖励")
+            if success:
+                # 获取玩家当前积分
+                player = self.game_service.db.get_player(message.user_id)
+                current_score = player.current_score if player else 0
+                response_text += f"\n当前积分：{current_score}"
+            else:
+                response_text += f"\n积分添加失败：{score_msg}"
+
+        elif choice == "都是我掉的":
+            # 失去所有临时标记的逻辑应该在这里实现
+            # TODO: 需要游戏服务实现清除临时标记的方法
+            pass
+
+        elif choice == "金骰子":
+            # 下次掷骰结果+1的祝福效果
+            # TODO: 需要游戏服务实现祝福效果系统
+            pass
+
+        elif choice == "银骰子":
+            # 给予银骰子祝福 - 下次掷骰可重骰一次
+            player = self.game_service.db.get_player(message.user_id)
+            if player:
+                # 在库存中添加银骰子祝福标记
+                if "银骰子祝福" not in player.inventory:
+                    player.inventory.append("银骰子祝福")
+                    self.game_service.db.update_player(player)
+                    response_text += f"\n银骰子祝福已生效！下次掷骰时输入'重投'可重新掷骰。"
+                else:
+                    response_text += f"\n你已经拥有银骰子祝福了！"
+            else:
+                response_text += f"\n无法找到玩家信息！"
 
         return BotResponse(
             content=response_text,
@@ -693,6 +783,19 @@ class MessageProcessor:
         return BotResponse(
             content="请输入1-5之间的数字选择陷阱选项。",
             message_type=MessageType.GAME_ACTION
+        )
+
+    def _handle_summit_confirmation(self, message: UserMessage, match: re.Match) -> BotResponse:
+        """处理登顶确认：数列{x}登顶"""
+        column = int(match.group(1))
+
+        # 调用游戏服务确认登顶
+        success, result_message = self.game_service.confirm_summit(message.user_id, column)
+
+        return BotResponse(
+            content=result_message,
+            message_type=MessageType.GAME_ACTION,
+            should_mention=True
         )
 
 

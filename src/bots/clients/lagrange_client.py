@@ -1,6 +1,5 @@
 """
 Lagrange.OneBot WebSocket 客户端
-基于原始test.py优化，集成了test_fixed.py的修复
 """
 
 import asyncio
@@ -15,14 +14,16 @@ logger = logging.getLogger(__name__)
 class LagrangeClient:
     """Lagrange.OneBot WebSocket客户端"""
 
-    def __init__(self, ws_url: str = "ws://127.0.0.1:8080/onebot/v11/ws") -> None:
+    def __init__(self, ws_url: str = "ws://127.0.0.2:8081/onebot/v11/ws", access_token: Optional[str] = None) -> None:
         """
         初始化 Lagrange OneBot 客户端
 
         Args:
             ws_url: WebSocket 连接地址
+            access_token: 访问令牌（可选）
         """
         self.ws_url: str = ws_url
+        self.access_token: Optional[str] = access_token
         self.ws: Optional[websockets.WebSocketClientProtocol] = None
 
     def _extract_message_text(self, message_data) -> str:
@@ -77,7 +78,12 @@ class LagrangeClient:
 
     async def connect(self) -> None:
         """建立 WebSocket 连接"""
-        self.ws = await websockets.connect(self.ws_url)
+        extra_headers = {}
+        if self.access_token:
+            extra_headers["Authorization"] = f"Bearer {self.access_token}"
+            logger.info("🔑 使用 Access Token 连接")
+
+        self.ws = await websockets.connect(self.ws_url, extra_headers=extra_headers)
         logger.info("✅ 已连接到 Lagrange.OneBot")
 
     async def disconnect(self) -> None:

@@ -21,9 +21,10 @@ from typing import Dict, List, Any
 class GMOverviewPanel(QWidget):
     """GM总览面板"""
 
-    def __init__(self, game_service):
+    def __init__(self, game_service, main_window=None):
         super().__init__()
         self.game_service = game_service
+        self.main_window = main_window
         self.setup_ui()
         self.setup_auto_refresh()
 
@@ -37,10 +38,10 @@ class GMOverviewPanel(QWidget):
             QLabel {
                 font-size: 16px;
                 font-weight: bold;
-                color: #2c5aa0;
+                color: black;
                 padding: 10px;
-                background: #f0f8ff;
-                border: 2px solid #2c5aa0;
+                background: white;
+                border: 2px solid #cccccc;
                 border-radius: 8px;
                 margin-bottom: 10px;
             }
@@ -99,7 +100,7 @@ class GMOverviewPanel(QWidget):
 
             # 标签
             label = QLabel(label_text)
-            label.setStyleSheet("font-weight: bold; color: #555;")
+            label.setStyleSheet("font-weight: bold; color: black;")
             layout.addWidget(label, row * 2, col)
 
             # 数值
@@ -108,8 +109,8 @@ class GMOverviewPanel(QWidget):
                 QLabel {
                     font-size: 18px;
                     font-weight: bold;
-                    color: #2c5aa0;
-                    background: #f8f9fa;
+                    color: black;
+                    background: white;
                     border: 1px solid #dee2e6;
                     border-radius: 4px;
                     padding: 5px;
@@ -152,14 +153,14 @@ class GMOverviewPanel(QWidget):
             QTableWidget {
                 gridline-color: #d0d0d0;
                 background-color: white;
-                alternate-background-color: #f8f9fa;
+                alternate-background-color: white;
             }
             QTableWidget::item {
                 padding: 8px;
                 border-bottom: 1px solid #e9ecef;
             }
             QHeaderView::section {
-                background-color: #e9ecef;
+                background-color: white;
                 padding: 8px;
                 border: 1px solid #dee2e6;
                 font-weight: bold;
@@ -198,18 +199,18 @@ class GMOverviewPanel(QWidget):
         refresh_btn = QPushButton("🔄 手动刷新")
         refresh_btn.setStyleSheet("""
             QPushButton {
-                background-color: #007bff;
-                color: white;
+                background-color: white;
+                color: black;
                 border: none;
                 padding: 8px 16px;
                 border-radius: 4px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #0056b3;
+                background-color: #f0f0f0;
             }
             QPushButton:pressed {
-                background-color: #004085;
+                background-color: #e0e0e0;
             }
         """)
         refresh_btn.clicked.connect(self.refresh_data)
@@ -219,26 +220,131 @@ class GMOverviewPanel(QWidget):
         export_btn = QPushButton("📊 导出数据")
         export_btn.setStyleSheet("""
             QPushButton {
-                background-color: #28a745;
-                color: white;
+                background-color: white;
+                color: black;
                 border: none;
                 padding: 8px 16px;
                 border-radius: 4px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #1e7e34;
+                background-color: #f0f0f0;
             }
             QPushButton:pressed {
-                background-color: #155724;
+                background-color: #e0e0e0;
             }
         """)
         export_btn.clicked.connect(self.export_data)
         layout.addWidget(export_btn)
 
+        # 批量加积分按钮
+        add_score_btn = QPushButton("💰 批量加积分")
+        add_score_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: black;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #f0f0f0;
+            }
+            QPushButton:pressed {
+                background-color: #e0e0e0;
+            }
+        """)
+        add_score_btn.clicked.connect(self.batch_add_score)
+        layout.addWidget(add_score_btn)
+
+        # 清除陷阱按钮
+        clear_traps_btn = QPushButton("🕳️ 清除陷阱")
+        clear_traps_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: black;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #f0f0f0;
+            }
+            QPushButton:pressed {
+                background-color: #e0e0e0;
+            }
+        """)
+        clear_traps_btn.clicked.connect(self.clear_all_traps)
+        layout.addWidget(clear_traps_btn)
+
+        # 随机生成陷阱按钮
+        gen_traps_btn = QPushButton("🎲 随机陷阱")
+        gen_traps_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: black;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #f0f0f0;
+            }
+            QPushButton:pressed {
+                background-color: #e0e0e0;
+            }
+        """)
+        gen_traps_btn.clicked.connect(self.generate_random_traps)
+        layout.addWidget(gen_traps_btn)
+
+        # 检查积分系统按钮
+        verify_btn = QPushButton("🔍 检查积分")
+        verify_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: black;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #f0f0f0;
+            }
+            QPushButton:pressed {
+                background-color: #e0e0e0;
+            }
+        """)
+        verify_btn.clicked.connect(self.verify_score_system)
+        layout.addWidget(verify_btn)
+
+        # 重置游戏按钮
+        reset_btn = QPushButton("🔄 重置游戏")
+        reset_btn.setStyleSheet("""
+            QPushButton {
+                background-color: white;
+                color: black;
+                border: 2px solid #dc3545;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #fff5f5;
+            }
+            QPushButton:pressed {
+                background-color: #ffe0e0;
+            }
+        """)
+        reset_btn.clicked.connect(self.reset_all_game_data)
+        layout.addWidget(reset_btn)
+
         # 自动刷新状态
         self.auto_refresh_label = QLabel("⏱️ 自动刷新: 启用 (30秒)")
-        self.auto_refresh_label.setStyleSheet("color: #28a745; font-weight: bold;")
+        self.auto_refresh_label.setStyleSheet("color: black; font-weight: bold;")
         layout.addWidget(self.auto_refresh_label)
 
         layout.addStretch()
@@ -403,3 +509,186 @@ class GMOverviewPanel(QWidget):
 
         except Exception as e:
             self.details_text.append(f"❌ 导出失败: {str(e)}")
+
+    def batch_add_score(self):
+        """批量给所有玩家添加积分"""
+        try:
+            from PySide6.QtWidgets import QInputDialog, QMessageBox
+
+            # 弹出对话框让用户输入积分数量
+            amount, ok = QInputDialog.getInt(
+                self,
+                "批量添加积分",
+                "请输入要给所有玩家添加的积分数量:",
+                value=100,
+                min=1,
+                max=10000,
+                step=10
+            )
+
+            if not ok:
+                return
+
+            # 让用户输入原因
+            reason, ok = QInputDialog.getText(
+                self,
+                "添加原因",
+                "请输入添加积分的原因:",
+                text="GM奖励"
+            )
+
+            if not ok:
+                reason = "GM奖励"
+
+            # 执行批量添加
+            success, message = self.game_service.batch_add_score_to_all(amount, reason)
+
+            if success:
+                QMessageBox.information(self, "成功", message)
+                self.details_text.append(f"\n{message}")
+                self.refresh_data()  # 刷新显示
+            else:
+                QMessageBox.warning(self, "失败", message)
+                self.details_text.append(f"\n❌ {message}")
+
+        except Exception as e:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "错误", f"批量添加积分失败: {str(e)}")
+            self.details_text.append(f"\n❌ 批量添加积分失败: {str(e)}")
+
+    def clear_all_traps(self):
+        """清除所有陷阱"""
+        try:
+            from PySide6.QtWidgets import QMessageBox
+
+            # 确认对话框
+            reply = QMessageBox.question(
+                self,
+                "确认清除",
+                "⚠️ 确定要清除所有陷阱吗？\n这将移除地图上的所有陷阱，不可恢复。",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.No:
+                return
+
+            # 执行清除
+            success, message = self.game_service.clear_all_traps()
+
+            if success:
+                QMessageBox.information(self, "成功", message)
+                self.details_text.append(f"\n{message}")
+
+                # 刷新地图显示
+                if self.main_window and hasattr(self.main_window, 'game_board'):
+                    self.main_window.game_board.update_trap_tooltips()
+                    self.main_window.refresh_game_map()
+            else:
+                QMessageBox.warning(self, "失败", message)
+                self.details_text.append(f"\n❌ {message}")
+
+        except Exception as e:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "错误", f"清除陷阱失败: {str(e)}")
+            self.details_text.append(f"\n❌ 清除陷阱失败: {str(e)}")
+
+    def generate_random_traps(self):
+        """随机生成陷阱"""
+        try:
+            from PySide6.QtWidgets import QMessageBox
+
+            # 确认对话框
+            reply = QMessageBox.question(
+                self,
+                "确认生成",
+                "🎲 确定要随机生成陷阱吗？\n这将在地图上随机生成陷阱。",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.No:
+                return
+
+            # 执行生成
+            success, message = self.game_service.generate_random_traps()
+
+            if success:
+                QMessageBox.information(self, "成功", message)
+                self.details_text.append(f"\n{message}")
+
+                # 刷新地图显示
+                if self.main_window and hasattr(self.main_window, 'game_board'):
+                    self.main_window.game_board.update_trap_tooltips()
+                    self.main_window.refresh_game_map()
+            else:
+                QMessageBox.warning(self, "失败", message)
+                self.details_text.append(f"\n❌ {message}")
+
+        except Exception as e:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "错误", f"生成陷阱失败: {str(e)}")
+            self.details_text.append(f"\n❌ 生成陷阱失败: {str(e)}")
+
+    def verify_score_system(self):
+        """验证积分系统"""
+        try:
+            from PySide6.QtWidgets import QMessageBox
+
+            # 执行检查
+            success, report = self.game_service.verify_score_system()
+
+            if success:
+                # 在详细信息区显示报告
+                self.details_text.append(f"\n{report}")
+
+                # 弹出对话框显示报告
+                QMessageBox.information(self, "积分系统检查", report)
+            else:
+                QMessageBox.warning(self, "检查失败", report)
+                self.details_text.append(f"\n❌ {report}")
+
+        except Exception as e:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "错误", f"验证积分系统失败: {str(e)}")
+            self.details_text.append(f"\n❌ 验证积分系统失败: {str(e)}")
+
+    def reset_all_game_data(self):
+        """重置所有玩家的游戏数据"""
+        try:
+            from PySide6.QtWidgets import QMessageBox
+
+            # 确认对话框
+            reply = QMessageBox.warning(
+                self,
+                "⚠️ 危险操作",
+                "🔴 确定要重置所有游戏数据吗？\n\n将会清除：\n• 所有玩家的积分\n• 所有游戏进度\n• 所有游戏会话\n• 所有临时标记\n\n保留：\n• 玩家名称和阵营\n\n⚠️ 此操作不可恢复！",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+
+            if reply == QMessageBox.StandardButton.No:
+                return
+
+            # 执行重置
+            success, message = self.game_service.reset_all_game_data()
+
+            if success:
+                QMessageBox.information(self, "重置成功", message)
+                self.details_text.append(f"\n{message}")
+
+                # 刷新所有显示
+                self.refresh_data()
+                if self.main_window and hasattr(self.main_window, 'game_board'):
+                    self.main_window.game_board.update_trap_tooltips()
+                    self.main_window.refresh_game_map()
+                if self.main_window and hasattr(self.main_window, 'player_panel'):
+                    self.main_window.player_panel.refresh_players()
+            else:
+                QMessageBox.warning(self, "重置失败", message)
+                self.details_text.append(f"\n❌ {message}")
+
+        except Exception as e:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "错误", f"重置失败: {str(e)}")
+            self.details_text.append(f"\n❌ 重置失败: {str(e)}")

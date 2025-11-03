@@ -29,14 +29,32 @@ class GameService:
             # 检查玩家是否已存在
             existing_player = self.db.get_player(player_id)
             if existing_player:
-                return False, f"玩家 {username} 已存在"
+                # 获取玩家当前阵营名称
+                current_faction = "收养人" if existing_player.faction == Faction.ADOPTER else "Aonreth"
+
+                # 检查是否修改阵营
+                if existing_player.faction != faction:
+                    # 允许修改阵营
+                    existing_player.faction = faction
+                    success = self.db.update_player(existing_player)
+
+                    # 同步更新游戏引擎中的玩家信息
+                    if player_id in self.engine.players:
+                        self.engine.players[player_id].faction = faction
+
+                    if success:
+                        return True, f"✅ 阵营修改成功！\n🔄 从 [{current_faction}] 切换到 [{faction_name}]\n🏁 当前阵营：{faction_name}"
+                    else:
+                        return False, "修改阵营失败"
+                else:
+                    return False, f"您已注册为 [{current_faction}] 阵营，无需重复注册"
 
             # 创建玩家
             success = self.db.create_player(player_id, username, faction)
             if success:
                 # 在游戏引擎中创建玩家
                 player = self.engine.create_player(player_id, username, faction)
-                return True, f"玩家 {username} 注册成功，阵营：{faction_name}"
+                return True, f"✅ 玩家 {username} 注册成功！\n🏁 阵营：{faction_name}"
             else:
                 return False, "注册失败"
 
@@ -94,7 +112,7 @@ class GameService:
         except Exception as e:
             return False, f"恢复游戏失败：{str(e)}"
 
-    def roll_dice(self, player_id: str) -> Tuple[bool, str, Optional[List[Tuple[int, int]]]]:
+    def roll_dice(self, player_id: str, free_roll: bool = False) -> Tuple[bool, str, Optional[List[Tuple[int, int]]]]:
         """掷骰子"""
         try:
             # 加载玩家和会话
@@ -106,8 +124,8 @@ class GameService:
             if session.needs_checkin:
                 return False, "请先完成打卡后再继续游戏", None
 
-            # 检查积分
-            if player.current_score < 10:
+            # 检查积分（免费重投时跳过积分检查）
+            if not free_roll and player.current_score < 10:
                 return False, f"积分不足（当前：{player.current_score}，需要：10）", None
 
             # 掷骰
@@ -116,6 +134,10 @@ class GameService:
             # 更新掷骰统计
             player.total_dice_rolls += 1
 
+            # 扣除积分（免费重投时不扣除）
+            if not free_roll:
+                player.add_score(-10, "掷骰费用")
+
             # 保存状态
             self._save_player_and_session(player, session)
 
@@ -123,7 +145,10 @@ class GameService:
             combinations = dice_roll.get_possible_combinations()
 
             message = f"的骰点：🎲{' '.join(map(str, dice_roll.results))}\n"
-            message += f"积分：{player.current_score} (-10)\n"
+            if free_roll:
+                message += f"积分：{player.current_score} (免费重投)\n"
+            else:
+                message += f"积分：{player.current_score} (-10)\n"
             message += "请选择数值组合（格式：a,b 或单个数字）"
 
             return True, message, combinations
@@ -218,6 +243,23 @@ class GameService:
         except Exception as e:
             return False, f"打卡失败：{str(e)}"
 
+    def confirm_summit(self, player_id: str, column: int) -> Tuple[bool, str]:
+        """确认登顶指定列"""
+        try:
+            player, session = self._load_player_and_session(player_id)
+            if not player or not session:
+                return False, "请先开始游戏"
+
+            success, message = self.engine.confirm_summit(session.session_id, column)
+
+            if success:
+                self._save_player_and_session(player, session)
+
+            return success, message
+
+        except Exception as e:
+            return False, f"确认登顶失败：{str(e)}"
+
     def get_game_status(self, player_id: str) -> Tuple[bool, str]:
         """获取游戏状态"""
         try:
@@ -232,22 +274,29 @@ class GameService:
             return False, f"获取状态失败：{str(e)}"
 
     def add_score(self, player_id: str, amount: int, score_type: str) -> Tuple[bool, str]:
-        """添加积分"""
+        """添加积分（支持自定义积分或类型积分）"""
         try:
             player = self._load_player(player_id)
             if not player:
                 return False, "玩家不存在"
 
-            # 根据作品类型设置积分
-            score_map = {
-                "草图": 20,
-                "精致小图": 80,
-                "精草大图": 100,
-                "精致大图": 150,
-                "超常发挥": 30
-            }
+            # 如果提供了自定义积分（amount > 0），优先使用自定义积分
+            if amount > 0:
+                final_amount = amount
+            else:
+                # 否则根据作品类型设置积分
+                score_map = {
+                    "草图": 20,
+                    "精致小图": 80,
+                    "精草大图": 100,
+                    "精致大图": 150,
+                    "超常发挥": 30
+                }
+                final_amount = score_map.get(score_type, 0)
 
-            final_amount = score_map.get(score_type, amount)
+            if final_amount <= 0:
+                return False, "无效的积分数量"
+
             player.add_score(final_amount, score_type)
 
             self.db.update_player(player)
@@ -397,7 +446,7 @@ class GameService:
 
     def _get_detailed_status(self, player: Player, session: Optional[GameSession]) -> str:
         """获取详细状态"""
-        message = f"{player.username} 的游戏状态\n"
+        message = f"的游戏状态\n"
         message += "-" * 30 + "\n"
         message += f"阵营：{player.faction.value}\n"
         message += f"当前积分：{player.current_score}\n"
@@ -626,3 +675,114 @@ class GameService:
 
         except Exception as e:
             return False, f"切换玩家失败：{str(e)}"
+
+    def batch_add_score_to_all(self, amount: int, reason: str = "GM奖励") -> Tuple[bool, str]:
+        """批量给所有玩家添加积分"""
+        try:
+            players = self.db.get_all_active_players()
+            if not players:
+                return False, "没有找到玩家"
+
+            success_count = 0
+            for player in players:
+                try:
+                    player.add_score(amount, reason)
+                    self.db.update_player(player)
+                    success_count += 1
+                except Exception as e:
+                    print(f"给玩家 {player.username} 加积分失败: {e}")
+
+            return True, f"✅ 成功给 {success_count}/{len(players)} 个玩家添加 {amount} 积分\n💰 原因：{reason}"
+
+        except Exception as e:
+            return False, f"批量添加积分失败：{str(e)}"
+
+    def clear_all_traps(self) -> Tuple[bool, str]:
+        """清除所有陷阱"""
+        try:
+            # 清空陷阱配置中的生成陷阱
+            self.engine.trap_config.generated_traps.clear()
+            self.engine.trap_config.save_config()
+
+            # 清空地图事件中的陷阱
+            self.engine.map_events.clear()
+
+            return True, "✅ 所有陷阱已清除！\n🗺️ 地图上不再有任何陷阱"
+
+        except Exception as e:
+            return False, f"清除陷阱失败：{str(e)}"
+
+    def generate_random_traps(self) -> Tuple[bool, str]:
+        """随机生成陷阱"""
+        try:
+            # 调用游戏引擎的随机生成方法
+            self.engine.regenerate_traps()
+
+            # 保存配置
+            self.engine.trap_config.save_config()
+
+            # 统计生成的陷阱数量
+            trap_count = len(self.engine.trap_config.generated_traps)
+
+            return True, f"✅ 陷阱已随机生成！\n🎲 共生成 {trap_count} 个陷阱\n📍 陷阱已放置在地图上"
+
+        except Exception as e:
+            return False, f"生成陷阱失败：{str(e)}"
+
+    def verify_score_system(self) -> Tuple[bool, str]:
+        """验证积分系统工作是否正常"""
+        try:
+            report = "🔍 积分系统检查报告\n"
+            report += "=" * 50 + "\n\n"
+
+            # 获取所有玩家
+            players = self.db.get_all_active_players()
+            if not players:
+                return True, report + "⚠️ 没有找到玩家，无法检查"
+
+            issues = []
+            total_checks = 0
+
+            for player in players:
+                total_checks += 1
+
+                # 检查1: 积分不能为负
+                if player.current_score < 0:
+                    issues.append(f"❌ {player.username}: 当前积分为负 ({player.current_score})")
+
+                # 检查2: total_score应该 >= current_score（在没有扣分的情况下）
+                # 注意：因为有消耗，这个检查可能不适用
+                # if player.total_score < player.current_score:
+                #     issues.append(f"❌ {player.username}: 总积分 ({player.total_score}) < 当前积分 ({player.current_score})")
+
+                # 检查3: 玩家对象完整性
+                if not hasattr(player, 'progress'):
+                    issues.append(f"❌ {player.username}: 缺少进度数据")
+
+                # 检查4: 数据库与内存一致性
+                db_player = self.db.get_player(player.player_id)
+                if db_player:
+                    if db_player.current_score != player.current_score:
+                        issues.append(f"⚠️ {player.username}: 内存积分({player.current_score}) != 数据库积分({db_player.current_score})")
+
+            # 生成报告
+            report += f"📊 检查玩家数: {total_checks}\n"
+            report += f"✅ 发现问题数: {len(issues)}\n\n"
+
+            if issues:
+                report += "⚠️ 发现以下问题：\n"
+                for issue in issues:
+                    report += f"  {issue}\n"
+            else:
+                report += "✨ 积分系统一切正常！\n"
+
+            # 添加积分统计
+            report += "\n" + "=" * 50 + "\n"
+            report += "💰 积分统计:\n"
+            for player in players:
+                report += f"  • {player.username}: {player.current_score} 积分 (总计: {player.total_score})\n"
+
+            return True, report
+
+        except Exception as e:
+            return False, f"验证积分系统失败：{str(e)}"

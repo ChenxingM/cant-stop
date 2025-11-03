@@ -35,21 +35,22 @@ class UnifiedLauncher:
         try:
             if config.platform == "lagrange":
                 # 延迟导入Lagrange机器人
-                from ..platforms.lagrange_bot import CantStopLagrangeBot
-                bot = CantStopLagrangeBot(
+                from ..platforms.lagrange_game_bot import CantStopGameBot
+                bot = CantStopGameBot(
                     ws_url=config.websocket.url,
+                    access_token=config.websocket.access_token,
                     allowed_groups=config.bot.allowed_groups,
                     admin_users=config.bot.admin_users
                 )
-                await bot.run()
+                await bot.start()
 
             elif config.platform == "qq_http":
                 # 延迟导入QQ机器人
                 from ..platforms.qq_bot import QQBot
                 bot = QQBot(
                     onebot_url=config.websocket.url,
-                    listen_host="127.0.0.1",
-                    listen_port=8080
+                    listen_host="127.0.0.2",
+                    listen_port=8081
                 )
                 await bot.run()
 
