@@ -394,6 +394,138 @@ class DatabaseManager:
                 # 删除会话
                 session.delete(old_session)
 
+    # ========== 道具系统CRUD操作 ==========
+
+    def add_item_to_inventory(self, player_id: str, item_name: str, item_type: str = "consumable", quantity: int = 1) -> bool:
+        """添加道具到玩家库存"""
+        from .models import PlayerInventoryDB
+
+        with self.get_session() as session:
+            # 检查道具是否已存在
+            existing_item = session.query(PlayerInventoryDB).filter_by(
+                player_id=player_id,
+                item_name=item_name
+            ).first()
+
+            if existing_item:
+                # 如果已存在，增加数量
+                existing_item.quantity += quantity
+                existing_item.used_count = 0  # 重置使用次数（可根据需求调整）
+            else:
+                # 否则创建新记录
+                new_item = PlayerInventoryDB(
+                    player_id=player_id,
+                    item_name=item_name,
+                    item_type=item_type,
+                    quantity=quantity
+                )
+                session.add(new_item)
+
+            # 同时更新Player的inventory列表（保持兼容性）
+            player_db = session.query(PlayerDB).filter_by(player_id=player_id).first()
+            if player_db:
+                # 更新内存inventory（简单列表）
+                from ..models.game_models import Player
+                player = self.get_player(player_id)
+                if player:
+                    player.add_item(item_name)
+                    self.update_player(player)
+
+            return True
+
+    def remove_item_from_inventory(self, player_id: str, item_name: str, quantity: int = 1) -> bool:
+        """从玩家库存移除道具"""
+        from .models import PlayerInventoryDB
+
+        with self.get_session() as session:
+            item_db = session.query(PlayerInventoryDB).filter_by(
+                player_id=player_id,
+                item_name=item_name
+            ).first()
+
+            if not item_db or item_db.quantity < quantity:
+                return False
+
+            item_db.quantity -= quantity
+
+            # 如果数量为0，删除记录
+            if item_db.quantity <= 0:
+                session.delete(item_db)
+
+            # 同时更新Player的inventory列表
+            player = self.get_player(player_id)
+            if player and item_name in player.inventory:
+                player.use_item(item_name)
+                self.update_player(player)
+
+            return True
+
+    def get_player_inventory(self, player_id: str) -> List[Dict[str, Any]]:
+        """获取玩家库存"""
+        from .models import PlayerInventoryDB
+
+        with self.get_session() as session:
+            items = session.query(PlayerInventoryDB).filter_by(
+                player_id=player_id
+            ).all()
+
+            inventory = []
+            for item in items:
+                inventory.append({
+                    'item_name': item.item_name,
+                    'item_type': item.item_type,
+                    'quantity': item.quantity,
+                    'acquired_at': item.acquired_at,
+                    'used_count': item.used_count
+                })
+
+            return inventory
+
+    def update_item_used_count(self, player_id: str, item_name: str) -> bool:
+        """更新道具使用次数"""
+        from .models import PlayerInventoryDB
+
+        with self.get_session() as session:
+            item_db = session.query(PlayerInventoryDB).filter_by(
+                player_id=player_id,
+                item_name=item_name
+            ).first()
+
+            if item_db:
+                item_db.used_count += 1
+                return True
+
+            return False
+
+    def get_item_quantity(self, player_id: str, item_name: str) -> int:
+        """获取玩家拥有的道具数量"""
+        from .models import PlayerInventoryDB
+
+        with self.get_session() as session:
+            item_db = session.query(PlayerInventoryDB).filter_by(
+                player_id=player_id,
+                item_name=item_name
+            ).first()
+
+            return item_db.quantity if item_db else 0
+
+    def clear_player_inventory(self, player_id: str) -> bool:
+        """清空玩家库存"""
+        from .models import PlayerInventoryDB
+
+        with self.get_session() as session:
+            session.query(PlayerInventoryDB).filter_by(
+                player_id=player_id
+            ).delete()
+
+            # 同时清空Player的inventory列表
+            player = self.get_player(player_id)
+            if player:
+                player.inventory.clear()
+                self.update_player(player)
+
+            return True
+
 
 # 全局数据库实例
 db_manager: Optional[DatabaseManager] = None

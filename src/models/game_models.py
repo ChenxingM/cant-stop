@@ -12,7 +12,7 @@ import random
 class Faction(Enum):
     """阵营枚举"""
     ADOPTER = "收养人"
-    AONRETH = "Aonreth"
+    AONRETH = "Aeonreth"
 
 
 class GameState(Enum):

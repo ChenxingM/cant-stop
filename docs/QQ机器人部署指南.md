@@ -179,7 +179,7 @@ python -c "import secrets; print(secrets.token_urlsafe(16))"
 - `allowed_groups`: 允许的QQ群号列表（空数组表示所有群）
 - `admin_users`: 管理员QQ号列表
 - `auto_register`: 是否自动注册新用户
-- `default_faction`: 默认阵营（收养人/Aonreth）
+- `default_faction`: 默认阵营（收养人/Aeonreth）
 
 #### 消息配置
 - `use_emoji`: 是否使用emoji

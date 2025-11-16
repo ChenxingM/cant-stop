@@ -19,7 +19,7 @@
 CREATE TABLE players (
     player_id VARCHAR(50) PRIMARY KEY,
     username VARCHAR(100) NOT NULL,
-    faction ENUM('收养人', 'Aonreth') NOT NULL,
+    faction ENUM('收养人', 'Aeonreth') NOT NULL,
     current_score INTEGER DEFAULT 0,
     total_score INTEGER DEFAULT 0,
     games_played INTEGER DEFAULT 0,

@@ -237,3 +237,47 @@ class GameStatisticsDB(Base):
     stat_name = Column(String(50), unique=True, nullable=False)
     stat_value = Column(JSON)  # 存储各种统计数据
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class PlayerEncounterStateDB(Base):
+    """玩家遭遇状态数据库模型"""
+    __tablename__ = 'player_encounter_states'
+
+    state_id = Column(Integer, primary_key=True)
+    player_id = Column(String(50), ForeignKey('players.player_id'), nullable=False)
+    encounter_name = Column(String(100), nullable=False)
+    state = Column(String(20), nullable=False)  # waiting_choice, processing, completed, follow_up
+    selected_choice = Column(String(100), nullable=True)
+    follow_up_trigger = Column(String(100), nullable=True)
+    context_data = Column(JSON)
+    created_at = Column(DateTime, default=func.now())
+    expires_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class PlayerEffectDB(Base):
+    """玩家效果数据库模型（Buff和延迟效果）"""
+    __tablename__ = 'player_effects'
+
+    effect_id = Column(Integer, primary_key=True)
+    player_id = Column(String(50), ForeignKey('players.player_id'), nullable=False)
+    effect_type = Column(String(50), nullable=False)  # buff, delayed_effect
+    effect_name = Column(String(100), nullable=False)
+    effect_data = Column(JSON)
+    duration = Column(Integer, default=1)  # -1表示永久
+    remaining_turns = Column(Integer, nullable=True)
+    trigger_turn = Column(Integer, nullable=True)  # 延迟效果触发回合
+    created_at = Column(DateTime, default=func.now())
+    expires_at = Column(DateTime, nullable=True)
+
+
+class EncounterHistoryDB(Base):
+    """遭遇历史记录数据库模型"""
+    __tablename__ = 'encounter_history'
+
+    history_id = Column(Integer, primary_key=True)
+    player_id = Column(String(50), ForeignKey('players.player_id'), nullable=False)
+    encounter_name = Column(String(100), nullable=False)
+    selected_choice = Column(String(100), nullable=True)
+    result = Column(Text, nullable=True)
+    triggered_at = Column(DateTime, default=func.now())

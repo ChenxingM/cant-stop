@@ -100,6 +100,212 @@
           "trap_name": "小小火球术"
         }
       ]
+    },
+    "curiosity_killed_cat": {
+      "name": "🐈 好奇心害死猫",
+      "description": "有些真相不该被知道",
+      "category": "SPECIAL",
+      "reward_description": "神秘经验 - 特殊称号",
+      "conditions": [
+        {
+          "type": "trap_triggered",
+          "trap_name": "不要回头"
+        }
+      ]
+    },
+    "lucky_three": {
+      "name": "🎊 吉祥三宝",
+      "description": "★✦恭喜您第三通关游戏✦★",
+      "category": "CHALLENGE",
+      "reward_description": "积分+50，现实奖励：丑喵团子一只 纪念币一枚（私信官号领取，不包邮）",
+      "reward_type": "mixed",
+      "reward_data": {
+        "score": 50,
+        "real_world": "丑喵团子一只 纪念币一枚（私信官号领取，不包邮）"
+      },
+      "conditions": [
+        {
+          "type": "game_complete_count",
+          "count": 3,
+          "exact": true
+        }
+      ]
+    },
+    "one_step_away": {
+      "name": "🎯 一步之遥",
+      "description": "掌声通过隐藏音响传来，全息投影跳出\"恭喜通关\"的电子贺卡……\n★✦恭喜您第四通关游戏✦★",
+      "category": "CHALLENGE",
+      "reward_description": "没有捏～～～",
+      "reward_type": "none",
+      "conditions": [
+        {
+          "type": "game_complete_count",
+          "count": 4,
+          "exact": true
+        }
+      ]
+    },
+    "crane_among_chickens": {
+      "name": "🐔 鹤立OAS群",
+      "description": "大吉大利，今晚吃鸡\n肥美的烤鸡扑扇着翅膀飞到了你面前的盘子里，诱人的香气让你迫不及待地切开金黄外皮…不对，等一下？！",
+      "category": "SPECIAL",
+      "reward_description": "积分+20，现实奖励：纪念币一枚（私信官号领取，不包邮）",
+      "reward_type": "mixed",
+      "reward_data": {
+        "score": 20,
+        "real_world": "纪念币一枚（私信官号领取，不包邮）"
+      },
+      "conditions": [
+        {
+          "type": "first_complete_column",
+          "description": "首次完成任意一列"
+        }
+      ]
+    },
+    "timely_help": {
+      "name": "❄️ 雪中送炭",
+      "description": "惩罚了吗？哎↗ 没有～\n恭喜您在遭遇陷阱后触发奖励/规避规则书惩罚·负面影响",
+      "category": "SPECIAL",
+      "reward_description": "欧皇王冠 - 隐藏道具",
+      "is_hidden": true,
+      "conditions": [
+        {
+          "type": "avoid_trap_penalty",
+          "description": "在遭遇陷阱后触发奖励或规避负面影响"
+        }
+      ]
+    },
+    "unpredictable_fate": {
+      "name": "🔮 天机算不尽",
+      "description": "是劫还是缘\n恭喜您已解锁3个隐藏成就",
+      "category": "COLLECTION",
+      "reward_description": "套娃 - 隐藏道具",
+      "is_hidden": true,
+      "conditions": [
+        {
+          "type": "hidden_achievements_count",
+          "count": 3
+        }
+      ]
+    },
+    "host_suspicion": {
+      "name": "⚠️ 主持人的猜忌",
+      "description": "恭喜您2次在遭遇陷阱后触发奖励/规避规则书惩罚·负面影响",
+      "category": "SPECIAL",
+      "reward_description": "黄牌警告 - 隐藏道具",
+      "is_hidden": true,
+      "conditions": [
+        {
+          "type": "avoid_trap_penalty_count",
+          "count": 2
+        }
+      ]
+    },
+    "cold_heart": {
+      "name": "❄️ 冰冷的心",
+      "description": "爱情的契约束缚了你的行动",
+      "category": "UNLUCKY",
+      "reward_description": "单身狗的祝福 - 免疫下一次婚戒陷阱",
+      "conditions": [
+        {
+          "type": "trap_triggered",
+          "trap_name": "婚戒…？"
+        }
+      ]
+    },
+    "math_zero": {
+      "name": "📉 数学0蛋",
+      "description": "数学不好，真的会在生活中吃亏的！",
+      "category": "UNLUCKY",
+      "reward_description": "数学补习券 - 道具",
+      "conditions": [
+        {
+          "type": "trap_triggered",
+          "trap_name": "奇变偶不变"
+        }
+      ]
+    },
+    "math_king": {
+      "name": "👑 数学大王",
+      "description": "奇变偶不变，符号看象限！",
+      "category": "CHALLENGE",
+      "reward_description": "数学天才勋章 - 称号",
+      "conditions": [
+        {
+          "type": "trap_triggered",
+          "trap_name": "奇变偶不变"
+        },
+        {
+          "type": "complex",
+          "description": "成功规避奇变偶不变惩罚",
+          "check_function": "check_math_king"
+        }
+      ]
+    },
+    "crying_student": {
+      "name": "😭 哭哭做题家",
+      "description": "电流让你的大脑短路了",
+      "category": "UNLUCKY",
+      "reward_description": "绝缘手套 - 道具",
+      "conditions": [
+        {
+          "type": "trap_triggered",
+          "trap_name": "雷电法王"
+        }
+      ]
+    },
+    "enter_in": {
+      "name": "⚡ 进去吧你！",
+      "description": "你成功抵抗了雷电法王的攻击",
+      "category": "CHALLENGE",
+      "reward_description": "雷电抗性 - Buff",
+      "conditions": [
+        {
+          "type": "trap_triggered",
+          "trap_name": "雷电法王"
+        },
+        {
+          "type": "complex",
+          "description": "成功规避雷电法王惩罚",
+          "check_function": "check_enter_in"
+        }
+      ]
+    },
+    "sekiro": {
+      "name": "⚔️ 影逝二度",
+      "description": "犹豫就会败北！",
+      "category": "SPECIAL",
+      "reward_description": "不死斩 - 特殊道具",
+      "conditions": [
+        {
+          "type": "trap_triggered",
+          "trap_name": "影逝二度"
+        }
+      ]
+    },
+    "sad_painter": {
+      "name": "🎨 悲伤的小画家",
+      "description": "被七色章鱼审核不通过了",
+      "category": "UNLUCKY",
+      "reward_description": "画笔改进券 - 道具",
+      "conditions": [
+        {
+          "type": "trap_triggered",
+          "trap_name": "七色章鱼"
+        }
+      ]
+    },
+    "fall_guys": {
+      "name": "🏃 玩家一败涂地",
+      "description": "一脚踩空，跌入深渊",
+      "category": "UNLUCKY",
+      "reward_description": "安全绳 - 道具",
+      "conditions": [
+        {
+          "type": "trap_triggered",
+          "trap_name": "中空格子"
+        }
+      ]
     }
   }
 }

@@ -164,7 +164,9 @@ class CantStopGameBot:
         game_keywords = [
             "轮次开始", "r6d6", "选择数值", "替换永久", "继续", "打卡完毕",
             "查看当前进度", "help", "帮助", "选择阵营", "领取", "排行榜",
-            "选择", "数值", "骰子", "重投", "登顶", "我超级满意"  # 添加登顶和满意关键词
+            "选择", "数值", "骰子", "重投", "登顶", "我超级满意",  # 添加登顶和满意关键词
+            "道具商店", "查看库存", "我的道具", "背包", "查看背包",  # 库存相关
+            "购买", "捏捏", "使用", "查看成就", "恢复游戏"  # 道具和其他指令
         ]
 
         # 检查是否包含数字组合（优先级更高）
@@ -176,7 +178,35 @@ class CantStopGameBot:
         if re.match(r'^数列\d+登顶$', msg.plain_text.strip()):
             return True
 
-        return any(keyword in msg.plain_text for keyword in game_keywords)
+        # 检查是否是编号选项格式（如 "1. 好呀好呀"）
+        if re.match(r'^\s*\d+\.\s*.+', msg.plain_text.strip()):
+            return True
+
+        # 检查是否包含常见的遭遇/道具选择关键词
+        choice_keywords = [
+            # 同意/拒绝类
+            "好呀", "还是算了", "好啊", "好", "不了", "谢谢", "参加", "不参加",
+            # 动作类
+            "继续", "休息", "靠近", "逃跑", "帮忙", "不帮", "观看", "绕过",
+            "看看", "过去", "未来", "听故事", "不听", "借书", "不借", "加入",
+            "戴上", "不戴", "走了", "走开", "前进", "仔细",
+            # 触摸/互动类
+            "摸摸", "敲敲", "浇水", "数羊", "吐槽", "夸赞", "尝试", "修复",
+            # 选择类
+            "红色", "蓝色", "甜的", "辣的", "吓死", "申请", "想要",
+            # 特殊选项
+            "321", "啊啊", "仔细观赏", "静静", "快速", "慢慢", "深度"
+        ]
+
+        # 先检查游戏关键词
+        if any(keyword in msg.plain_text for keyword in game_keywords):
+            return True
+
+        # 如果消息很短（可能是选项回复），检查选择关键词
+        if len(msg.plain_text.strip()) <= 20:
+            return any(keyword in msg.plain_text for keyword in choice_keywords)
+
+        return False
 
     def _has_image(self, msg: GroupMessage) -> bool:
         """检查消息是否包含图片"""
@@ -199,7 +229,7 @@ class CantStopGameBot:
                 f"用户{user_id}，您已自动注册为\"收养人\"阵营\n\n"
                 f"您可以使用以下指令选择阵营：\n"
                 f"• 选择阵营：收养人\n"
-                f"• 选择阵营：Aonreth\n\n"
+                f"• 选择阵营：Aeonreth\n\n"
                 f"选择阵营后，输入\"轮次开始\"开始游戏\n"
                 f"或输入\"help\"查看完整指令列表"
             )
@@ -380,7 +410,7 @@ async def main():
     # 创建机器人实例
     bot = CantStopGameBot(
         ws_url="ws://127.0.0.1:8080",
-        allowed_groups=[541674420],  # 你的测试群号
+
         admin_users=[1234567890],    # 你的QQ号
         enable_log=True
     )

@@ -32,6 +32,10 @@ try:
     from ..core.trap_system import TrapSystem
     from ..config.config_manager import get_config
     from .gm_panel import GMOverviewPanel
+    from .enhanced_panels import PlayerDetailPanel, CommandPanel
+    from .trap_encounter_manager import (
+        TrapEncounterManagerPanel, load_available_traps, load_available_encounters
+    )
 except ImportError:
     try:
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -40,6 +44,10 @@ except ImportError:
         from src.core.achievement_system import AchievementSystem, AchievementCategory
         from src.core.trap_system import TrapSystem
         from src.interfaces.gm_panel import GMOverviewPanel
+        from src.interfaces.enhanced_panels import PlayerDetailPanel, CommandPanel
+        from src.interfaces.trap_encounter_manager import (
+            TrapEncounterManagerPanel, load_available_traps, load_available_encounters
+        )
     except ImportError as e:
         print(f"❌ 无法导入游戏服务: {e}")
         sys.exit(1)
@@ -50,6 +58,7 @@ class GameCell(QFrame):
 
     # 定义信号
     trap_changed = Signal(int, int, str)  # column, row, trap_name
+    encounter_changed = Signal(int, int, str)  # column, row, encounter_name
 
     # 玩家颜色配置
     PLAYER_COLORS = {
@@ -71,6 +80,7 @@ class GameCell(QFrame):
         self.player_color_map = {}  # 玩家名称到颜色索引的映射
         self.trap_system = trap_system
         self.trap_type = None
+        self.encounter_name = None  # 遭遇事件名称
 
         # 检查是否是陷阱位置
         if trap_system:
@@ -113,22 +123,61 @@ class GameCell(QFrame):
 
     def set_empty(self):
         """设置为空格子"""
-        if self.trap_type:
-            # 陷阱格子显示特殊样式
-            self.setStyleSheet("""
-                QFrame[class="game-cell"] {
-                    background: #2d1b3d;
-                    border: 2px solid #8b0000;
+        # 检查是否有陷阱或遭遇
+        has_trap = self.trap_type is not None
+        has_encounter = self.encounter_name is not None
+
+        if has_trap or has_encounter:
+            # 有陷阱或遭遇的格子显示特殊样式
+            # 根据类型选择不同的颜色
+            if has_trap and has_encounter:
+                # 同时有陷阱和遭遇 - 紫红色
+                bg_color = "#2d1b3d"
+                border_color = "#8b0000"
+                hover_bg = "#3d2b4d"
+                hover_border = "#ff4444"
+            elif has_trap:
+                # 只有陷阱 - 深红色
+                bg_color = "#2d1b3d"
+                border_color = "#8b0000"
+                hover_bg = "#3d2b4d"
+                hover_border = "#ff4444"
+            else:
+                # 只有遭遇 - 深蓝色
+                bg_color = "#1b2d3d"
+                border_color = "#00668b"
+                hover_bg = "#2b3d4d"
+                hover_border = "#4499ff"
+
+            self.setStyleSheet(f"""
+                QFrame[class="game-cell"] {{
+                    background: {bg_color};
+                    border: 2px solid {border_color};
                     border-radius: 4px;
-                }
-                QFrame[class="game-cell"]:hover {
-                    background: #3d2b4d;
-                    border: 2px solid #ff4444;
-                }
+                }}
+                QFrame[class="game-cell"]:hover {{
+                    background: {hover_bg};
+                    border: 2px solid {hover_border};
+                }}
             """)
+
+            # 组合显示图标
+            event_icon = ""
+            if has_trap:
+                event_icon += "🕳️"
+            if has_encounter:
+                event_icon += "🎭"
+
             self.player_label.setText("")
-            self.position_label.setText("🕳️")
-            self.position_label.setStyleSheet("color: #ff4444; font-weight: bold;")
+            self.position_label.setText(event_icon)
+
+            # 设置图标颜色
+            if has_trap and has_encounter:
+                self.position_label.setStyleSheet("color: #ff44ff; font-weight: bold;")
+            elif has_trap:
+                self.position_label.setStyleSheet("color: #ff4444; font-weight: bold;")
+            else:
+                self.position_label.setStyleSheet("color: #4499ff; font-weight: bold;")
         else:
             # 普通空格子样式
             self.setStyleSheet("""
@@ -180,8 +229,12 @@ class GameCell(QFrame):
                 border_width = "2px"
                 icon = "○"
 
-            # 如果是陷阱位置，添加陷阱图标
-            trap_icon = "🕳️" if self.trap_type else ""
+            # 如果是陷阱或遭遇位置，添加图标
+            event_icon = ""
+            if self.trap_type:
+                event_icon += "🕳️"
+            if self.encounter_name:
+                event_icon += "🎭"
 
             self.setStyleSheet(f"""
                 QFrame[class="game-cell"] {{
@@ -195,7 +248,7 @@ class GameCell(QFrame):
                 }}
             """)
 
-            self.player_label.setText(f"{trap_icon}{player_name[:2]}")
+            self.player_label.setText(f"{event_icon}{player_name[:2]}")
             self.position_label.setText(icon)
 
             # 设置 hover 提示
@@ -204,6 +257,8 @@ class GameCell(QFrame):
                 trap_info = self.trap_system.traps[self.trap_type] if self.trap_system else None
                 if trap_info:
                     tooltip += f"\n\n🕳️ 陷阱: {self.trap_type.value}\n{trap_info.description}"
+            if self.encounter_name:
+                tooltip += f"\n\n🎭 遭遇: {self.encounter_name}"
             self.setToolTip(tooltip)
 
         else:
@@ -214,8 +269,12 @@ class GameCell(QFrame):
             primary_color = colors[0]
             border_color = "#dc3545" if has_permanent else "#28a745"
 
-            # 如果是陷阱位置，添加陷阱图标
-            trap_icon = "🕳️" if self.trap_type else ""
+            # 如果是陷阱或遭遇位置，添加图标
+            event_icon = ""
+            if self.trap_type:
+                event_icon += "🕳️"
+            if self.encounter_name:
+                event_icon += "🎭"
 
             self.setStyleSheet(f"""
                 QFrame[class="game-cell"] {{
@@ -229,7 +288,7 @@ class GameCell(QFrame):
                 }}
             """)
 
-            self.player_label.setText(f"{trap_icon}{len(self.players)}")
+            self.player_label.setText(f"{event_icon}{len(self.players)}")
             self.position_label.setText("●" if has_permanent else "○")
 
             # 设置鼠标悟停提示
@@ -245,6 +304,9 @@ class GameCell(QFrame):
                     trap_info = self.trap_system.traps[self.trap_type]
                     tooltip += f"\n{trap_info.description}"
 
+            if self.encounter_name:
+                tooltip += f"\n\n🎭 遭遇: {self.encounter_name}"
+
             self.setToolTip(tooltip)
 
     def update_trap_status(self, trap_type, trap_tooltip=""):
@@ -253,6 +315,22 @@ class GameCell(QFrame):
         if trap_tooltip:
             self.setToolTip(trap_tooltip)
         else:
+            self.setToolTip("")
+        # 重新应用显示
+        self._update_display()
+
+    def update_encounter_status(self, encounter_name: str, encounter_tooltip: str = ""):
+        """更新遭遇状态"""
+        self.encounter_name = encounter_name
+        if encounter_tooltip:
+            current_tooltip = self.toolTip()
+            # 如果已有陷阱提示，追加遭遇提示
+            if current_tooltip:
+                self.setToolTip(f"{current_tooltip}\n\n{encounter_tooltip}")
+            else:
+                self.setToolTip(encounter_tooltip)
+        elif not self.trap_type:
+            # 如果没有陷阱也没有遭遇，清空提示
             self.setToolTip("")
         # 重新应用显示
         self._update_display()
@@ -287,28 +365,55 @@ class GameCell(QFrame):
         trap_menu = QMenu("🕳️ 设置陷阱", self)
         trap_menu.setStyleSheet(menu.styleSheet())
 
-        # 添加各种陷阱选项
-        trap_options = [
-            ("小小火球术", "🔥", "停止一回合并强制骰子结果"),
-            ("不要回头", "🔄", "扣除积分，可能清空标记"),
-            ("河..土地神", "🌊", "二选一：失去行动权或标记后退"),
-            ("花言巧语", "💬", "必须改变标记移动方向")
-        ]
+        # 动态加载所有可用陷阱
+        available_traps = load_available_traps()
+        trap_icons = {
+            "小小火球术": "🔥", "不要回头": "🔄", "婚戒…？": "💍",
+            "奇变偶不变": "🔢", "雷电法王": "⚡", "中门对狙": "🎯",
+            "影逝二度": "⚔️", "七色章鱼": "🐙", "中空格子": "🕳️",
+            "OAS阿卡利亚": "👁️", "时间扭曲": "⏰", "幸运女神": "🍀"
+        }
 
-        for trap_name, icon, description in trap_options:
+        for trap_name in available_traps:
+            icon = trap_icons.get(trap_name, "🕳️")
             action = QAction(f"{icon} {trap_name}", self)
-            action.setToolTip(description)
             action.triggered.connect(lambda checked, name=trap_name: self.set_trap(name))
             trap_menu.addAction(action)
 
-        # 清除陷阱选项
-        clear_action = QAction("❌ 清除陷阱", self)
-        clear_action.triggered.connect(lambda: self.set_trap(""))
+        # 遭遇设置子菜单
+        encounter_menu = QMenu("🎭 设置遭遇", self)
+        encounter_menu.setStyleSheet(menu.styleSheet())
+
+        # 动态加载所有可用遭遇（限制显示前20个，避免菜单过长）
+        available_encounters = load_available_encounters()
+        for encounter_name in available_encounters[:20]:  # 只显示前20个
+            action = QAction(f"🎭 {encounter_name}", self)
+            action.triggered.connect(lambda checked, name=encounter_name: self.set_encounter(name))
+            encounter_menu.addAction(action)
+
+        # 如果遭遇数量超过20，添加提示
+        if len(available_encounters) > 20:
+            more_action = QAction(f"... 还有 {len(available_encounters) - 20} 个遭遇", self)
+            more_action.setEnabled(False)
+            encounter_menu.addSeparator()
+            encounter_menu.addAction(more_action)
+            hint_action = QAction("💡 使用陷阱遭遇管理器查看全部", self)
+            hint_action.setEnabled(False)
+            encounter_menu.addAction(hint_action)
+
+        # 清除选项
+        clear_trap_action = QAction("❌ 清除陷阱", self)
+        clear_trap_action.triggered.connect(lambda: self.set_trap(""))
+
+        clear_encounter_action = QAction("❌ 清除遭遇", self)
+        clear_encounter_action.triggered.connect(lambda: self.set_encounter(""))
 
         # 添加到主菜单
         menu.addMenu(trap_menu)
+        menu.addMenu(encounter_menu)
         menu.addSeparator()
-        menu.addAction(clear_action)
+        menu.addAction(clear_trap_action)
+        menu.addAction(clear_encounter_action)
 
         # 添加位置信息
         menu.addSeparator()
@@ -337,6 +442,11 @@ class GameCell(QFrame):
         """设置陷阱"""
         # 发射信号通知GameBoard更新
         self.trap_changed.emit(self.column, self.row, trap_name)
+
+    def set_encounter(self, encounter_name: str):
+        """设置遭遇"""
+        # 发射信号通知GameBoard更新
+        self.encounter_changed.emit(self.column, self.row, encounter_name)
 
     def remove_player(self, player_name: str):
         """从格子移除玩家"""
@@ -507,14 +617,16 @@ class GameBoard(QWidget):
                 flipped_row = max_length - row + 1
                 cell = GameCell(col, row, None)  # 暂时不传入trap_system
                 cell.trap_changed.connect(self.on_trap_changed)  # 连接陷阱变更信号
+                cell.encounter_changed.connect(self.on_encounter_changed)  # 连接遭遇变更信号
                 self.cells[f"{col}_{row}"] = cell
                 layout.addWidget(cell, flipped_row, col - 3)
 
         self.setLayout(layout)
 
-        # 初始化完成后更新陷阱显示
+        # 初始化完成后更新陷阱和遭遇显示
         if self.game_service:
             self.update_trap_tooltips()
+            self.update_encounter_tooltips()
 
     def assign_player_color(self, player_name: str) -> int:
         """为玩家分配颜色"""
@@ -558,6 +670,29 @@ class GameBoard(QWidget):
                 cell.update_trap_status(None, "")
                 print(f"更新陷阱显示失败: {e}")  # 调试用
 
+    def update_encounter_tooltips(self):
+        """更新遭遇工具提示和视觉效果"""
+        if not self.game_service:
+            return
+
+        for cell in self.cells.values():
+            # 重新检查遭遇位置 - 从游戏引擎的遭遇配置获取最新信息
+            try:
+                encounter_name = self.game_service.engine.encounter_config.get_encounter_for_position(cell.column, cell.row)
+
+                if encounter_name:
+                    # 创建遭遇工具提示
+                    tooltip = f"🎭 {encounter_name}"
+                    cell.update_encounter_status(encounter_name, tooltip)
+                else:
+                    # 清空遭遇显示
+                    cell.update_encounter_status(None, "")
+
+            except Exception as e:
+                # 如果获取失败，清空提示
+                cell.update_encounter_status(None, "")
+                print(f"更新遭遇显示失败: {e}")  # 调试用
+
     def update_player_positions(self, all_players_data: List[Dict]):
         """更新所有玩家位置"""
         # 先清空棋盘
@@ -590,8 +725,9 @@ class GameBoard(QWidget):
                 if cell_key in self.cells:
                     self.cells[cell_key].add_player(player_name, color_index, is_permanent=False)
 
-        # 更新完玩家位置后，重新应用陷阱显示
+        # 更新完玩家位置后，重新应用陷阱和遭遇显示
         self.update_trap_tooltips()
+        self.update_encounter_tooltips()
 
     def on_trap_changed(self, column: int, row: int, trap_name: str):
         """处理陷阱变更信号"""
@@ -621,6 +757,35 @@ class GameBoard(QWidget):
 
         except Exception as e:
             print(f"❌ 陷阱操作失败: {str(e)}")
+
+    def on_encounter_changed(self, column: int, row: int, encounter_name: str):
+        """处理遭遇变更信号"""
+        if not self.game_service:
+            return
+
+        try:
+            if encounter_name:
+                # 手动设置单个遭遇位置
+                success, message = self.game_service.set_manual_encounter(encounter_name, column, row)
+                if success:
+                    # 更新遭遇显示
+                    self.update_encounter_tooltips()
+                    # 通知用户
+                    print(f"✅ {message}")
+                else:
+                    print(f"❌ 设置遭遇失败: {message}")
+            else:
+                # 清除遭遇
+                success, message = self.game_service.remove_encounter_at_position(column, row)
+                if success:
+                    # 更新遭遇显示
+                    self.update_encounter_tooltips()
+                    print(f"✅ {message}")
+                else:
+                    print(f"ℹ️ {message}")
+
+        except Exception as e:
+            print(f"❌ 遭遇操作失败: {str(e)}")
 
 class PlayerListWidget(QWidget):
     """玩家列表组件"""
@@ -1018,7 +1183,7 @@ class CantStopGUI(QMainWindow):
         register_row.setSpacing(4)
 
         self.faction_combo = QComboBox()
-        self.faction_combo.addItems(["收养人", "Aonreth"])
+        self.faction_combo.addItems(["收养人", "Aeonreth"])
         register_row.addWidget(self.faction_combo)
 
         self.register_btn = QPushButton("注册")
@@ -1278,9 +1443,23 @@ class CantStopGUI(QMainWindow):
         player_tab = self.create_player_tab()
         tab_widget.addTab(player_tab, "👥 玩家信息")
 
-        # 第二个标签：GM视角
+        # 第二个标签：玩家详细信息（新）
+        self.player_detail_panel = PlayerDetailPanel(self.game_service)
+        tab_widget.addTab(self.player_detail_panel, "📊 详细信息")
+
+        # 第三个标签：高级命令（新）
+        self.command_panel = CommandPanel(self.game_service)
+        self.command_panel.command_executed.connect(self.on_command_executed)
+        tab_widget.addTab(self.command_panel, "🎮 高级命令")
+
+        # 第四个标签：陷阱遭遇管理（新）
+        self.trap_encounter_panel = TrapEncounterManagerPanel(self.game_service)
+        self.trap_encounter_panel.config_updated.connect(self.on_config_updated)
+        tab_widget.addTab(self.trap_encounter_panel, "🕳️ 陷阱遭遇")
+
+        # 第五个标签：GM视角
         gm_tab = self.create_gm_tab()
-        tab_widget.addTab(gm_tab, "🎮 GM视角")
+        tab_widget.addTab(gm_tab, "🎯 GM视角")
 
         layout.addWidget(tab_widget)
         return panel
@@ -1390,6 +1569,12 @@ class CantStopGUI(QMainWindow):
             for btn in self.quick_buttons.values():
                 btn.setEnabled(True)
 
+            # 更新新增面板
+            if hasattr(self, 'player_detail_panel'):
+                self.player_detail_panel.set_player(self.current_player_id)
+            if hasattr(self, 'command_panel'):
+                self.command_panel.set_player(self.current_player_id)
+
 
     def on_player_switched(self, player_name: str):
         """切换玩家"""
@@ -1464,6 +1649,7 @@ class CantStopGUI(QMainWindow):
             if success:
                 # 重新生成陷阱后更新棋盘
                 self.game_board.update_trap_tooltips()
+                self.game_board.update_encounter_tooltips()
 
     def set_trap_config(self):
         """设置陷阱配置"""
@@ -1494,6 +1680,7 @@ class CantStopGUI(QMainWindow):
                 self.trap_columns_input.clear()
                 # 重新设置陷阱配置后更新棋盘
                 self.game_board.update_trap_tooltips()
+                self.game_board.update_encounter_tooltips()
 
         except ValueError:
             self.show_message("❌ 列号格式错误！使用数字和逗号分隔（如：3,4,5）")
@@ -1675,6 +1862,25 @@ class CantStopGUI(QMainWindow):
 
         except Exception as e:
             self.show_message(f"❌ 显示玩家状态失败: {e}")
+
+    def on_command_executed(self, command: str, result: str):
+        """处理高级命令执行后的结果"""
+        self.show_message(f"💬 {command}")
+        self.show_message(f"🤖 {result}")
+
+        # 刷新相关显示
+        self.refresh_board()
+        self.update_ui_for_player()
+
+    def on_config_updated(self):
+        """处理陷阱遭遇配置更新"""
+        self.show_message("✅ 配置已更新")
+
+        # 刷新棋盘显示
+        if hasattr(self, 'game_board'):
+            self.game_board.update_trap_tooltips()
+            self.game_board.update_encounter_tooltips()
+        self.refresh_board()
 
     def closeEvent(self, event):
         """窗口关闭事件处理"""

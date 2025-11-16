@@ -11,6 +11,7 @@ from ..models.game_models import (
     GameState, TurnState, Faction, EventType, MapEvent
 )
 from .trap_config import TrapConfigManager
+from .encounter_config import EncounterConfigManager
 from ..config.config_manager import get_config
 from .event_system import GameEventType, emit_game_event
 
@@ -24,6 +25,7 @@ class GameEngine:
         self.players: Dict[str, Player] = {}
         self.map_events: Dict[str, List[MapEvent]] = {}  # column_position -> events
         self.trap_config = TrapConfigManager()
+        self.encounter_config = EncounterConfigManager()
         self._init_map_events()
 
     def _init_map_events(self):
@@ -98,16 +100,17 @@ class GameEngine:
         self.update_map_events_from_config()
 
     def update_map_events_from_config(self):
-        """仅根据当前陷阱配置更新map_events，不重新生成随机陷阱"""
-        # 清除现有陷阱事件
-        trap_keys = []
+        """仅根据当前陷阱和遭遇配置更新map_events，不重新生成随机内容"""
+        # 清除现有陷阱和遭遇事件
+        keys_to_remove = []
         for key, events in self.map_events.items():
-            self.map_events[key] = [event for event in events if event.event_type != EventType.TRAP]
+            self.map_events[key] = [event for event in events
+                                   if event.event_type not in (EventType.TRAP, EventType.ENCOUNTER)]
             if not self.map_events[key]:
-                trap_keys.append(key)
+                keys_to_remove.append(key)
 
         # 移除空的事件列表
-        for key in trap_keys:
+        for key in keys_to_remove:
             del self.map_events[key]
 
         # 使用现有的generated_traps（不重新生成）
@@ -122,6 +125,24 @@ class GameEngine:
                 event_type=EventType.TRAP,
                 name=trap_name,
                 description=f"{trap_name}陷阱",
+            )
+
+            if position_key not in self.map_events:
+                self.map_events[position_key] = []
+            self.map_events[position_key].append(event)
+
+        # 加载遭遇事件
+        for position_key, encounter_name in self.encounter_config.generated_encounters.items():
+            column, position = position_key.split('_')
+            column, position = int(column), int(position)
+
+            event = MapEvent(
+                event_id=f"encounter_{position_key}",
+                column=column,
+                position=position,
+                event_type=EventType.ENCOUNTER,
+                name=encounter_name,
+                description=f"{encounter_name}遭遇",
             )
 
             if position_key not in self.map_events:
@@ -188,8 +209,37 @@ class GameEngine:
         if session.turn_state not in [TurnState.DICE_ROLL, TurnState.DECISION]:
             raise ValueError(f"当前状态 ({session.turn_state.value}) 无法掷骰子")
 
-        # 检查积分是否足够
-        dice_cost = get_config("game_config", "game.dice_cost", 10)
+        # 处理本回合的延迟效果
+        from ..core.effect_handler import get_effect_handler
+        effect_handler = get_effect_handler()
+        delayed_effects = effect_handler.get_delayed_effects_for_turn(
+            player.player_id,
+            session.turn_number
+        )
+
+        # 应用延迟效果
+        for delayed_effect in delayed_effects:
+            if delayed_effect.effect_type == "dice_count_override":
+                dice_count = delayed_effect.effect_data.get("count", 6)
+                # 将骰子数量信息存储到session中以便后续使用
+                session.next_dice_count = dice_count
+            elif delayed_effect.effect_type == "extra_dice_risk":
+                # 标记需要额外投掷风险骰子
+                session.has_extra_dice_risk = True
+                session.extra_dice_risk_value = delayed_effect.effect_data.get("risk_value", 6)
+
+        # 检查积分是否足够（考虑消耗减免buff）
+        from ..core.item_system import get_buff_manager
+        buff_manager = get_buff_manager()
+        cost_reduction = buff_manager.get_cost_reduction(player.player_id)
+
+        # 同时考虑effect_handler中的cost_reduction
+        effect_cost_reduction = effect_handler.get_cost_reduction(player.player_id)
+        total_cost_reduction = cost_reduction + effect_cost_reduction
+
+        base_dice_cost = get_config("game_config", "game.dice_cost", 10)
+        dice_cost = max(0, base_dice_cost - total_cost_reduction)  # 确保不为负
+
         if not player.spend_score(dice_cost, "掷骰消耗"):
             raise ValueError("积分不足，无法掷骰")
 
@@ -200,6 +250,14 @@ class GameEngine:
         else:
             # 生成6个1-6的随机数
             dice_results = [random.randint(1, 6) for _ in range(6)]
+
+        # 应用骰子修正buff（+1或-1）
+        dice_modifier = buff_manager.get_dice_modifier(player.player_id)
+        if dice_modifier != 0:
+            dice_results = [max(1, min(6, d + dice_modifier)) for d in dice_results]
+            # 消耗骰子修正buff
+            from ..core.item_system import BuffType
+            buff_manager.consume_buff(player.player_id, BuffType.DICE_MODIFIER)
 
         dice_roll = DiceRoll(results=dice_results)
 
@@ -422,16 +480,19 @@ class GameEngine:
             column_reward = column * 2  # 根据列号的额外奖励
             total_reward = base_reward + column_reward
 
-            player.add_score(total_reward, f"登顶奖励-第{column}列")
-            column_messages.append(f"✦登顶奖励")
-            column_messages.append(f"恭喜您获得 {total_reward} 积分")
+            # player.add_score(total_reward, f"登顶奖励-第{column}列")
+            column_messages.append(f"恭喜您登顶")
 
             # 首达奖励（只在首次登顶时给予）
             if is_first_time:
                 column_messages.append("✦首达奖励")
                 first_time_bonus = 20
                 player.add_score(first_time_bonus, f"首达奖励-第{column}列")
-                column_messages.append(f"恭喜您在该列首次登顶，获得 {first_time_bonus} 积分")
+                column_messages.append(f"大吉大利，今晚吃鸡\n" +
+                                        f"肥美的烤鸡扑扇着翅膀飞到了你面前的盘子里，诱人的香气让你迫不及待地切开金黄外皮…不对，等一下？！\n"+
+                                        f"获得成就：鹤立oas群\n" +
+                                        f"获得奖励：积分+20 \n" +
+                                        f"获得现实奖励：纪念币一枚（私信官号领取，不包邮）")
 
             # 发布列完成事件
             emit_game_event(GameEventType.COLUMN_COMPLETED, session.player_id, {
@@ -618,11 +679,20 @@ class GameEngine:
 
     def _handle_encounter_event(self, session_id: str, event: MapEvent) -> str:
         """处理遭遇事件"""
-        player = self.get_player(self.get_game_session(session_id).player_id)
+        from ..core.encounter_system import get_encounter_manager
 
-        # 解锁遭遇事件，打卡后获得5积分
-        # 这里可以添加遭遇事件的具体逻辑
-        return f"👥 触发遭遇事件：{event.name}！\n💰 打卡后可获得5积分"
+        session = self.get_game_session(session_id)
+        player = self.get_player(session.player_id)
+
+        # 使用遭遇系统
+        encounter_mgr = get_encounter_manager()
+        success, message = encounter_mgr.trigger_encounter(player.player_id, event.name)
+
+        if success:
+            return message
+        else:
+            # 如果遭遇未定义，返回默认消息
+            return f"👥 触发遭遇事件：{event.name}！\n💰 打卡后可获得5积分"
 
     def continue_turn(self, session_id: str) -> bool:
         """继续当前轮次"""
@@ -665,6 +735,16 @@ class GameEngine:
             session.state = GameState.COMPLETED
             player.games_won += 1
             return True, "恭喜获胜！已在3列登顶！"
+
+        # 减少buff持续时间
+        from ..core.effect_handler import get_effect_handler
+        from ..core.item_system import get_buff_manager
+
+        effect_handler = get_effect_handler()
+        effect_handler.tick_buffs(player.player_id)
+
+        buff_manager = get_buff_manager()
+        buff_manager.clear_expired_buffs(player.player_id)
 
         # 需要打卡后才能开始下轮
         session.needs_checkin = True

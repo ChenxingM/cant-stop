@@ -29,6 +29,11 @@ class TrapConfigManager:
         self._init_default_configs()
         self.load_config()
 
+        # 只在首次启动（没有已保存的陷阱配置）时才生成陷阱
+        if not self.generated_traps:
+            self.generate_trap_positions()
+            self.save_config()
+
     def _init_default_configs(self):
         """初始化默认陷阱配置"""
         self.trap_configs = {

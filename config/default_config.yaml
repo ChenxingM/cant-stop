@@ -28,7 +28,11 @@ game:
   items:
     丑喵玩偶:
       price: 150
+      type: "consumable"
+      faction: "通用"
+      can_trade: true
       daily_use_limit: 3
+      description: "投了这么多骰子，手酸了吧？捏捏它可能会有奇效～"
       effects:
         - type: "score"
           min: 3
@@ -36,6 +40,198 @@ game:
           probability: 0.2
         - type: "nothing"
           probability: 0.8
+
+    火球术宝石:
+      price: 200
+      type: "consumable"
+      faction: "Aeonreth"
+      can_trade: true
+      description: "当你掷骰掷出1时，可以选择重掷一次（必须接受重掷结果）"
+      effects:
+        - type: "reroll_on_condition"
+          condition: "dice_value_1"
+          message: "火球术的火光闪烁，骰子重新跳跃..."
+
+    女巫的魔法伎俩:
+      price: 200
+      type: "consumable"
+      faction: "收养人"
+      can_trade: true
+      description: "当你掷骰掷出6时，可以选择重掷一次（必须接受重掷结果）"
+      effects:
+        - type: "reroll_on_condition"
+          condition: "dice_value_6"
+          message: "女巫的魔法悄悄更换了骰子的花纹..."
+
+    变大蘑菇:
+      price: 250
+      type: "consumable"
+      faction: "Aeonreth"
+      can_trade: true
+      description: "神秘的红帽子大叔给你送来的鲜艳蘑菇碎片"
+      interactive: true
+      choices:
+        - name: "吃"
+          effect: "dice_plus_1"
+          message: "你的身体不断变大，同时变大的还有你的骰子点数……\n下次投掷的所有结果全部+1"
+        - name: "不吃"
+          effect: "nothing"
+          message: "看起来有毒，还是算了。\n无事发生。"
+
+    缩小药水:
+      price: 250
+      type: "consumable"
+      faction: "收养人"
+      can_trade: true
+      description: "带着怀表的兔子跑过，你发现杂草中写着\"Drink Me\"的玻璃瓶"
+      interactive: true
+      choices:
+        - name: "喝"
+          effect: "dice_minus_1"
+          message: "你的身体不断缩小，同时缩小的还有你的骰子点数……\n下次投掷的所有结果全部-1"
+        - name: "不喝"
+          effect: "nothing"
+          message: "大人从小就说陌生人给的不能随便喝，还是算了。\n无事发生。"
+
+    超级大疫:
+      price: 300
+      type: "consumable"
+      faction: "通用"
+      can_trade: true
+      description: "必须在遇到陷阱前使用，通过绘制相关内容免疫下个陷阱"
+      interactive: true
+      choices:
+        - name: "戳戳手"
+          effect: "trap_immunity"
+          message: "小女孩拉拉你的手。\n下个陷阱可以通过绘制相关内容免疫"
+        - name: "拽拽腿"
+          effect: "nothing"
+          message: "小女孩踹了你一脚。\n有点疼疼的。"
+
+    火堆:
+      price: 0
+      type: "permanent"
+      faction: "通用"
+      can_trade: false
+      description: "令人安心的温暖火堆，上面插着一根铁签似乎还可以烤烤。\n使用后可以刷新上一个已使用道具的效果"
+      effects:
+        - type: "refresh_last_item"
+          message: "火堆的温暖让时间倒流..."
+
+    阈限空间:
+      price: 500
+      type: "consumable"
+      faction: "通用"
+      can_trade: true
+      description: "你踏入一片空旷寂静的空白，感受不到时间的存在"
+      effects:
+        - type: "retry_turn"
+          message: "当轮次触发失败被动结束后，可重新进行上一回合（仅一次机会）"
+
+    一斤鸭梨:
+      price: 400
+      type: "consumable"
+      faction: "通用"
+      can_trade: true
+      description: "用一斤鸭梨贿赂管理员得到你想要的结果"
+      effects:
+        - type: "reroll_3_dice"
+          message: "不是你的运气出了问题，而是系统出了问题！\n任选3个出目重新投掷"
+
+    The Room:
+      price: 0
+      type: "consumable"
+      faction: "通用"
+      can_trade: false
+      description: "\"一处了就走\"\n商店任一物品可半价购入\n\"喂！还回来！\""
+      effects:
+        - type: "shop_discount_50"
+          message: "下次购买道具享受半价优惠"
+
+    Biango Meow:
+      price: 0
+      type: "special"
+      faction: "通用"
+      can_trade: false
+      unlock_condition: "累计投满100个骰子"
+      description: "投了这么多骰子，手酸了吧，这是给你的奖励～\n\"喵～\""
+      effects:
+        - type: "random_reward"
+          rewards:
+            - reward_type: "score"
+              value: 30
+              probability: 0.4
+            - reward_type: "item"
+              value: "The Room"
+              probability: 0.2
+            - reward_type: "item"
+              value: "阈限空间"
+              probability: 0.2
+            - reward_type: "item"
+              value: ":）"
+              probability: 0.2
+
+    黑喵:
+      price: 800
+      type: "permanent"
+      faction: "通用"
+      can_trade: true
+      description: "喵向你走来…等等，它什么时候变成全身黑色了？\nwhile (true)..."
+      effects:
+        - type: "dice_cost_reduction"
+          value: 2
+          message: "之后的所有回合所需要消耗的积分-2"
+
+    修改液:
+      price: 0
+      type: "achievement_reward"
+      faction: "通用"
+      can_trade: false
+      description: "成就奖励：可以修改下次掷骰结果为上一列的点数"
+      effects:
+        - type: "modify_dice"
+          message: "使用修改液涂改骰子结果..."
+
+    风水罗盘:
+      price: 0
+      type: "achievement_reward"
+      faction: "通用"
+      can_trade: false
+      description: "成就奖励：可以将任意标记额外移动2格"
+      effects:
+        - type: "extra_movement"
+          value: 2
+          message: "风水罗盘指引方向，标记额外前进2格"
+
+    奇妙的变身器:
+      price: 0
+      type: "achievement_reward"
+      faction: "通用"
+      can_trade: false
+      description: "成就奖励：神秘效果"
+      effects:
+        - type: "special"
+          message: "变身器发出奇妙的光芒..."
+
+    老头款大背心:
+      price: 0
+      type: "achievement_reward"
+      faction: "通用"
+      can_trade: false
+      description: "成就奖励：纪念品"
+      effects:
+        - type: "commemorative"
+          message: "这是你平凡生活的见证"
+
+    游戏机打折券:
+      price: 0
+      type: "achievement_reward"
+      faction: "通用"
+      can_trade: false
+      description: "成就奖励：商店道具8折优惠券"
+      effects:
+        - type: "shop_discount_20"
+          message: "下次购买道具享受8折优惠"
 
 # QQ机器人配置 (可选)
 bot:

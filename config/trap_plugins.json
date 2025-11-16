@@ -1,5 +1,126 @@
 {
   "plugins": {
+    "小小火球术": {
+      "plugin_class": "FireballTrap",
+      "name": "小小火球术",
+      "description": "火球砸出的坑洞让你无处下脚。",
+      "character_quote": "为什么我的火球术不能骰出这种伤害啊？！！",
+      "penalty_description": "停止一回合（消耗一回合积分），并在下回合的掷骰中结果自动变为（4，5，5，5，6，6）\n*在完成此惩罚前不得主动结束当前轮次",
+      "position_config": {
+        "columns": [3, 4, 5, 6, 7],
+        "positions": []
+      },
+      "trigger_type": "small_column",
+      "enabled": true
+    },
+    "不要回头": {
+      "plugin_class": "DontLookBackTrap",
+      "name": "不要回头",
+      "description": "你感到身后一股寒意，当你战战兢兢地转过身试图搞清楚状况时，你发现在看到它脸的那一刻一切都已经晚了……",
+      "character_quote": "…话说回来，我有一计。",
+      "penalty_description": "清空当前列进度回到上一个永久旗子位置或初始位置",
+      "position_config": {
+        "columns": [],
+        "positions": []
+      },
+      "enabled": true
+    },
+    "婚戒…？": {
+      "plugin_class": "WeddingRingTrap",
+      "name": "婚戒…？",
+      "description": "象征契约精神的戒指。在你触碰它时，你突然被困在原地无法动弹。",
+      "character_quote": "直到死亡将我们分开...",
+      "penalty_description": "强制暂停该轮次直到你完成此陷阱相关绘制（不计算积分）\n如果你有【探索家】成就则免疫",
+      "position_config": {
+        "columns": [],
+        "positions": []
+      },
+      "enabled": true
+    },
+    "奇变偶不变": {
+      "plugin_class": "OddEvenTrap",
+      "name": "奇变偶不变",
+      "description": "这是什么神秘的暗号吗？",
+      "character_quote": "符号看象限！",
+      "penalty_description": "在你的下回合中，如果投掷结果中奇数大于3个，则额外获得一个d6骰可以随意加到你得到的两个加值的任意一个中，反之本回合作废（如果该回合触发［失败被动停止］，则惩罚改为下轮次停止一回合（消耗一回合积分））",
+      "position_config": {
+        "columns": [],
+        "positions": []
+      },
+      "enabled": true
+    },
+    "雷电法王": {
+      "plugin_class": "LightningKingTrap",
+      "name": "雷电法王",
+      "description": "一阵强劲的电流从脚底直达你的头顶",
+      "character_quote": "学不学？",
+      "penalty_description": "在你的下回合中，如果投掷结果的33加值可以得到的数字数量小于8种，则本回合作废",
+      "position_config": {
+        "columns": [],
+        "positions": []
+      },
+      "enabled": true
+    },
+    "中门对狙": {
+      "plugin_class": "HeadshotTrap",
+      "name": "中门对狙",
+      "description": "有什么东西挡住了你的去路？哦！是另一个玩家！快快清除阻碍吧～",
+      "character_quote": "Fire in the hole!",
+      "penalty_description": "任选一位玩家分别rd6比大小。点数大者+5积分，点数小者停止一回合（消耗一回合积分），点数一样则无事发生",
+      "position_config": {
+        "columns": [],
+        "positions": []
+      },
+      "enabled": true
+    },
+    "影逝二度": {
+      "plugin_class": "SekiroTrap",
+      "name": "影逝二度",
+      "description": "如何决定的时候，你的骰子已经自己丢出去了…",
+      "character_quote": "犹豫就会败北！",
+      "penalty_description": "你强制再进行两回合后才能结束该轮次",
+      "position_config": {
+        "columns": [],
+        "positions": []
+      },
+      "enabled": true
+    },
+    "七色章鱼": {
+      "plugin_class": "RainbowOctopusTrap",
+      "name": "七色章鱼",
+      "description": "一只闪着七色光芒的章鱼拦住了你的去路。萌萌的一小只看起来很无害，下一秒却卷起你把你丢了出去。",
+      "character_quote": "你，审核不通过。",
+      "penalty_description": "你该轮次所有列的当前的进度回退一格",
+      "position_config": {
+        "columns": [],
+        "positions": []
+      },
+      "enabled": true
+    },
+    "中空格子": {
+      "plugin_class": "HollowFloorTrap",
+      "name": "中空格子",
+      "description": "脚下的格子竟然是中空的？！！你一脚踩空快速下落，想要抓住边缘爬上来却始终无法成功。",
+      "character_quote": "啊啊啊啊啊——",
+      "penalty_description": "你暂停2回合（消耗2回合积分）",
+      "position_config": {
+        "columns": [],
+        "positions": []
+      },
+      "enabled": true
+    },
+    "OAS阿卡利亚": {
+      "plugin_class": "OASAkariaTrap",
+      "name": "OAS阿卡利亚",
+      "description": "你越玩越觉得这场真人游戏出现了太多奇怪的地方：不符合常理的装置、奇怪的音响、天气突然变化…当你停下来观察这一切的时候，你隔着一个个玻璃屏仿佛看到了若隐若现的，成百上千个摄像头正对着你…你忍不住再次思考这一切，道心破碎。",
+      "character_quote": "这一切...都是真的吗？",
+      "penalty_description": "积分减1/4。然后你用手电筒向那个方向，试图寻找声音的来源，但下一刻，锐利地尖叫声响起！长着利爪的女性模样的怪物朝着你扑来，速度之迅速让你难以反映，你被击倒在地——\nrd20，出目及10以上成功，ae阵营自动成功\n成功：你迅速做出了反击，击退了那怪物，但你仍然受了些伤，看来需要休息一下了。强制结束本轮次。\n失败：你被攻击后陷入了昏迷...当你再次清醒过来时，发现身上的糖果都不见了...你的积分-20。",
+      "position_config": {
+        "columns": [],
+        "positions": []
+      },
+      "enabled": true
+    },
     "时间扭曲": {
       "plugin_class": "TimeWarpTrap",
       "name": "时间扭曲",

@@ -8,7 +8,6 @@
   },
   "bot": {
     "allowed_groups": [
-      541674420,
       329182491
     ],
     "admin_users": [

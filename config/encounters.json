@@ -1,0 +1,1182 @@
+{
+  "encounters": {
+    "喵": {
+      "id": 1,
+      "name": "喵",
+      "description": "喵突然从灌木中窜了出来。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "吓死我了",
+          "type": "normal",
+          "effect": "custom",
+          "message": "喵\"喵\"地一声吃掉了你的骰子。\n你的下一次投掷只投5个骰子（.r5d6），进行3、2分组。\n\"这个不能吃哇！！！\"",
+          "game_effect": {
+            "type": "dice_count_change",
+            "value": 5,
+            "duration": 1
+          }
+        },
+        {
+          "name": "摸摸猫",
+          "type": "special",
+          "effect": "unlock_command",
+          "message": "喵呼噜呼噜的，靠在你脚边蹭蹭，似乎很享受。\n解锁指令：摸摸喵、投喂喵（每天限5次）",
+          "game_effect": {
+            "type": "unlock_commands",
+            "commands": [
+              "摸摸喵",
+              "投喂喵"
+            ],
+            "daily_limit": 5
+          }
+        },
+        {
+          "name": "静静看它走过去",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "梦": {
+      "id": 2,
+      "name": "梦",
+      "description": "氤氲的空气中弥漫着大片五彩斑斓的不明气团，边缘泛着朦胧的柔光，几只粉色的蝴蝶扑扇着翅膀穿梭其间，翅尖偶尔扫过气团，溅起细碎的光粒…",
+      "quote": null,
+      "choices": [
+        {
+          "name": "绕过去",
+          "type": "peaceful",
+          "cost": 5,
+          "effect": "nothing",
+          "message": "看起来太牙白了，还是绕远路走吧…\n你沿着气团边缘缓缓绕行，蝴蝶似乎被惊动，扑棱着飞向远方。\n无事发生。"
+        },
+        {
+          "name": "直接过去",
+          "type": "special",
+          "effect": "item_reward",
+          "message": "脚尖刚触到气团边缘，你整个人突然被一股轻柔的力量拉扯，眼前的景象骤然扭曲，瞬间坠入一片熟悉又陌生的旧日梦境之中。\n朦胧的光影里，一个玩家，到达这里一定经历了千辛万苦吧，这是给你的安慰礼，尽管拿去吧！\n财神给了你一张后悔券（在没有触发［失败被动停止］的情况下，如果对当前掷骰结果不满意，可重新投掷一次。）\n\"让我们说，谢谢财神。\"",
+          "game_effect": {
+            "type": "give_item",
+            "item": "后悔券"
+          },
+          "follow_up": {
+            "trigger": "谢谢财神",
+            "timeout": 60,
+            "reward": {
+              "type": "give_item",
+              "item": "免费掷骰券",
+              "message": "\"真是有礼貌的孩子！\"财神额外给了你一张免费掷骰券。"
+            }
+          }
+        }
+      ]
+    },
+    "小花": {
+      "id": 5,
+      "name": "小花",
+      "description": "一朵朵美丽的小花在你面前的草地上摇摆摇摆，摇摆摇摆，摇摆摇摆…",
+      "quote": null,
+      "choices": [
+        {
+          "name": "靠近小花",
+          "type": "normal",
+          "effect": "pause_turn",
+          "message": "\"哦不——那根本不是普通的花！\"\n你被巨大的\"花\"包围，花心长出无数尖牙一齐张开血盆大口向你袭来…\n你停止一回合（消耗一回合积分）。\n等你回过神来，你发现自己并没有外伤。花仍然在摇摆摇摆，摇摆摇摆……",
+          "game_effect": {
+            "type": "skip_turn",
+            "cost_score": true
+          }
+        },
+        {
+          "name": "浇水",
+          "type": "special",
+          "cost_item": "水壶",
+          "cost": 5,
+          "effect": "modify_encounter",
+          "message": "小花快速生长变成了大花，大花仍然在摇摆摇摆，摇摆摇摆……\n*在你之后到达此处的玩家将失去［靠近小花］选项",
+          "game_effect": {
+            "type": "modify_encounter_for_others",
+            "remove_choice": "靠近小花"
+          }
+        },
+        {
+          "name": "我没兴趣",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "不明物质": {
+      "id": 6,
+      "name": "不明物质",
+      "description": "前方出现了模糊不清的东西…",
+      "quote": "…真的可以靠近吗？",
+      "choices": [
+        {
+          "name": "晃得头晕，走了",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        },
+        {
+          "name": "靠近查看",
+          "type": "special",
+          "effect": "dice_count_change",
+          "message": "你靠近之后才发觉这是时间的波动，笼罩住你的瞬间，数个平行世界的你出现在了你面前。\n\"这是给你的～\"多个你不由分说地将一个骰子塞到了你的手里。\n\"想要多少骰子都可以，如果还不够的话记得向财政部申请哦~\"\n你的下一次投掷需要投7个骰子（.r7d6），进行3,4分组。",
+          "game_effect": {
+            "type": "dice_count_change",
+            "value": 7,
+            "duration": 1
+          }
+        },
+        {
+          "name": "我要申请更多骰子",
+          "type": "special",
+          "effect": "dice_count_extreme",
+          "message": "更多骰子的骰子从天而降。\n你的下一次投掷骰子数量改成10d6，进行5,5分组。",
+          "game_effect": {
+            "type": "dice_count_change",
+            "value": 10,
+            "duration": 1
+          }
+        },
+        {
+          "name": "仔细观察塞过来的骰子",
+          "type": "special",
+          "effect": "item_reward",
+          "message": "你发现这是一颗24K纯黄金打造的骰子。\n获得隐藏物品：意外之财。",
+          "game_effect": {
+            "type": "give_item",
+            "item": "意外之财"
+          }
+        }
+      ]
+    },
+    "一些手": {
+      "id": 8,
+      "name": "一些手",
+      "description": "\"嘿亲爱的，要不要我帮你看看会扔出什么？\"一只长着眼睛的手从地里长了出来",
+      "quote": null,
+      "choices": [
+        {
+          "name": "好呀好呀",
+          "type": "normal",
+          "effect": "score_penalty",
+          "message": "\"你难道没有好好听规则吗？！\"又一只手从地里冒了出来，对你指指点点，\"黄牌警告！禁止作弊！！\"\n你被扣除5积分。",
+          "game_effect": {
+            "type": "score_change",
+            "value": -5
+          }
+        },
+        {
+          "name": "还是算了",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "手遗憾地缩了回去。\n无事发生。"
+        }
+      ]
+    },
+    "螂的诱惑": {
+      "id": 9,
+      "name": "螂的诱惑",
+      "description": "你的头顶探出一对双马尾。不，那不是双马尾……",
+      "quote": null,
+      "choices": [
+        {
+          "name": "啊啊啊啊啊",
+          "type": "normal",
+          "effect": "forced_dice",
+          "message": "你抵挡不住螂的力量，扔了骰子就跑，下次投掷固定数值（3，3，3，3，3，3）\n好受打击…嘤嘤！QAQ\n你被扣除5积分。",
+          "game_effect": {
+            "type": "forced_dice_result",
+            "value": [
+              3,
+              3,
+              3,
+              3,
+              3,
+              3
+            ],
+            "score_penalty": -5
+          }
+        }
+      ]
+    },
+    "大撒币": {
+      "id": 11,
+      "name": "大撒币",
+      "description": "你看见财政部部长丝塔茜在远处，身边似乎还有一个你从未见过的AE，但还没等你靠近，就看见了无数的小钱钱从天而降...",
+      "quote": null,
+      "choices": [
+        {
+          "name": "小钱钱！赶快捡钱！",
+          "type": "normal",
+          "effect": "score_reward",
+          "message": "急忙在原地开始捡钱，很快就塞满了口袋...\n你的积分+10",
+          "game_effect": {
+            "type": "score_change",
+            "value": 10
+          }
+        },
+        {
+          "name": "先不管钱了！靠近丝塔茜！",
+          "type": "special",
+          "effect": "score_reward",
+          "message": "你靠近了丝塔茜的方向，但很快魔性的声音便在你的耳畔响起，且随着你的靠近声音也越来越大...最终，你彻底失去了意识，只记得那依然萦绕在你耳畔的诡异歌声...\n\"我恭喜你发财~\"\n醒来后，你发现你的口袋里被装满了钱。\n你的积分+10",
+          "game_effect": {
+            "type": "score_change",
+            "value": 10
+          }
+        }
+      ]
+    },
+    "信仰之跃": {
+      "id": 12,
+      "name": "信仰之跃",
+      "description": "你前进后，惊讶地发现前方有一个大裂谷！\n向下望去，只有看不见底的深渊。\n已经没有道路了…",
+      "quote": null,
+      "choices": [
+        {
+          "name": "321跳",
+          "type": "special",
+          "effect": "extra_dice_risk",
+          "message": "你一跃而下，越强的坠落感包裹住了你，让你甚至无法睁开眼睛看清楚周围的情况，直到你突然感觉到了有什么动作在你的身下托举，随后你感到了体内翻涌起了狂暴的原始力量！但这股力量...你难以控制！\n你在下一回合投掷的同时再额外投掷一次d6，如果这次额外投掷出现6则因为你用力过猛，将你本次的骰子全部骰子掷碎了。本回合作废。",
+          "game_effect": {
+            "type": "extra_dice_with_risk",
+            "risk_value": 6
+          }
+        }
+      ]
+    },
+    "豆腐脑": {
+      "id": 15,
+      "name": "豆腐脑",
+      "description": "你看到一面镜子，镜子里的你举起了两个形状奇异的豆腐。",
+      "quote": "\"过去还是未来？\"",
+      "choices": [
+        {
+          "name": "过去",
+          "type": "special",
+          "effect": "use_previous_dice",
+          "message": "镜子中的你将头颅打开，置换了其中的豆腐脑\n选择你上回合的三个点数，替换本回合三个点数",
+          "game_effect": {
+            "type": "replace_with_previous",
+            "count": 3
+          }
+        },
+        {
+          "name": "未来",
+          "type": "special",
+          "effect": "reroll_partial",
+          "message": "镜子中的你将头颅打开，置换了其中的豆腐脑\n选择本回合三个点数，强制重新投掷",
+          "game_effect": {
+            "type": "reroll_selected",
+            "count": 3
+          }
+        }
+      ]
+    },
+    "神奇小药丸": {
+      "id": 3,
+      "name": "神奇小药丸",
+      "description": "你看见面前站着一个长着猫耳朵的女孩。\n\"我叫牙比，初次见面！\"\n\"想来一颗开心小药丸吗？\"",
+      "quote": "她取出两种颜色的药丸。",
+      "choices": [
+        {
+          "name": "红色",
+          "type": "normal",
+          "effect": "dice_roll_check",
+          "message": "你吃掉了红色的药丸。\n牙比要求你投掷一次d6，点数大于3的情况下，你获得（你投掷的点数）的积分；小于3的情况下，你失去（你投掷的点数）的积分。",
+          "game_effect": {
+            "type": "dice_check",
+            "dice": "1d6",
+            "success_threshold": 4,
+            "success_effect": {
+              "type": "score_change",
+              "value_from_dice": true
+            },
+            "fail_effect": {
+              "type": "score_change",
+              "value_from_dice": true,
+              "negative": true
+            }
+          }
+        },
+        {
+          "name": "蓝色",
+          "type": "normal",
+          "effect": "dice_roll_check",
+          "message": "你吃掉了蓝色的药丸。\n牙比要求你投掷一次d6，点数大于3的情况下，你将在下一次投掷的骰子上+（你投掷的点数）；小于3的情况下，你将在下一次投掷的骰子上-（你投掷的点数）。",
+          "game_effect": {
+            "type": "dice_check",
+            "dice": "1d6",
+            "success_threshold": 4,
+            "success_effect": {
+              "type": "dice_modifier",
+              "value_from_dice": true
+            },
+            "fail_effect": {
+              "type": "dice_modifier",
+              "value_from_dice": true,
+              "negative": true
+            }
+          }
+        },
+        {
+          "name": "我想要黑色的",
+          "type": "special",
+          "effect": "special_reward",
+          "message": "〈真是贪心的家伙，黑色的可是稀有物~〈说着，她递给了你一颗黑色的药丸。\n你吃掉了黑色的药丸……\n〈这样的话，你就和我一样啦！〈牙比开心地蹦蹦跳跳。\n获得隐藏物品：变身器。",
+          "game_effect": {
+            "type": "give_item",
+            "item": "变身器"
+          }
+        },
+        {
+          "name": "不用了，谢谢",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "积木": {
+      "id": 4,
+      "name": "积木",
+      "description": "你迎面遇到了一只手中拿着积木的银毛狐狸。\n〈是你先看到我的。〈",
+      "quote": "〈来帮我搭积木吧～〈",
+      "choices": [
+        {
+          "name": "好",
+          "type": "special",
+          "effect": "dice_roll_check",
+          "message": "你投掷一次d20。\n小于等于10：你太笨手笨脚了！搭好的积木塔毁在你手里了。失去5积分。\n大于10：虽然耗费了一些时间，但成功地帮忙搭好了！获得5积分。\n等于20：居然搭了这么高！太厉害了！奖励你免费抽一次奖！（随机道具一个）",
+          "game_effect": {
+            "type": "dice_check",
+            "dice": "1d20",
+            "thresholds": [
+              {
+                "max": 10,
+                "effect": {
+                  "type": "score_change",
+                  "value": -5
+                },
+                "message": "你太笨手笨脚了！搭好的积木塔毁在你手里了。失去5积分。"
+              },
+              {
+                "min": 11,
+                "max": 19,
+                "effect": {
+                  "type": "score_change",
+                  "value": 5
+                },
+                "message": "虽然耗费了一些时间，但成功地帮忙搭好了！获得5积分。"
+              },
+              {
+                "exact": 20,
+                "effect": {
+                  "type": "random_item"
+                },
+                "message": "居然搭了这么高！太厉害了！奖励你免费抽一次奖！"
+              }
+            ]
+          }
+        },
+        {
+          "name": "不了",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "〈我也没指望你能帮上什么忙呢。〈\n无事发生。"
+        }
+      ]
+    },
+    "自助问答": {
+      "id": 7,
+      "name": "自助问答",
+      "description": "你发现了一只在睡觉的布偶猫。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "敲敲头",
+          "type": "normal",
+          "effect": "score_penalty",
+          "message": "〈猫〈沉沉地砸在了你的头上。\n再睁眼，你看到的是这只布偶猫在地板上走来走去的肚皮……\n〈别……别敲了！我自己说！我不是真的猫！我是猫型座椅！！！〈\n坐垫拟态被揭穿，恼羞成怒地咬了你一口。\n失去5积分。",
+          "game_effect": {
+            "type": "score_change",
+            "value": -5
+          }
+        },
+        {
+          "name": "摸摸肚子",
+          "type": "special",
+          "effect": "score_reward",
+          "message": "手感真不错，超好rua的。\n〈猫〈站起身来并晃了晃，掉出来一些硬币。\n获得5积分。",
+          "game_effect": {
+            "type": "score_change",
+            "value": 5
+          }
+        },
+        {
+          "name": "绕过去",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "人才市场": {
+      "id": 10,
+      "name": "人才市场",
+      "description": "你经过一间神秘的屋子，上面挂着〈人才市场〈四个字，门口站着一位棕发的AE\n〈欢迎光临~需要找工作吗？〈",
+      "quote": null,
+      "choices": [
+        {
+          "name": "好啊",
+          "type": "normal",
+          "cost": 10,
+          "effect": "score_reward",
+          "message": "〈我看看，嗯...保洁三天，工资预支。这段时间你可不能碰骰子咯。〈\n三个回合后领取15积分。",
+          "game_effect": {
+            "type": "delayed_reward",
+            "turns": 3,
+            "reward": {
+              "type": "score_change",
+              "value": 15
+            },
+            "restriction": "no_dice_roll"
+          }
+        },
+        {
+          "name": "薪资太少了，我不干",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "〈...那再见。〈\n无事发生。"
+        }
+      ]
+    },
+    "房产中介": {
+      "id": 13,
+      "name": "房产中介",
+      "description": "你经过一间神秘的屋子，上面挂着〈中介〈二字，门口站着一位戴眼镜的金发女人\n〈您好~要来看看房子吗？〈",
+      "quote": null,
+      "choices": [
+        {
+          "name": "看看",
+          "type": "normal",
+          "cost": 50,
+          "effect": "permanent_buff",
+          "message": "〈谢谢惠顾~请签约吧~〈\n她递给了你一张崭新的纸。\n你永久地获得了一项增益：家的buff（所有掷骰花费-1）",
+          "game_effect": {
+            "type": "permanent_buff",
+            "buff": "dice_cost_reduction",
+            "value": 1
+          }
+        },
+        {
+          "name": "太贵了",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "〈...那，祝您愉快。〈\n无事发生。"
+        }
+      ]
+    },
+    "奇异的菜肴": {
+      "id": 14,
+      "name": "奇异的菜肴",
+      "description": "你看到一只不明犬科生物守在一个精致的盘子旁边。",
+      "quote": "〈需要来点什么？〈",
+      "choices": [
+        {
+          "name": "甜的",
+          "type": "normal",
+          "effect": "dice_roll_check",
+          "message": "你投掷一次d6。\n点数大于3：好吃好吃！！下一次掷骰时骰子点数固定+1！\n点数小于等于3：呃，你确定这是甜的…失去5积分。",
+          "game_effect": {
+            "type": "dice_check",
+            "dice": "1d6",
+            "success_threshold": 4,
+            "success_effect": {
+              "type": "dice_modifier",
+              "value": 1,
+              "duration": 1
+            },
+            "fail_effect": {
+              "type": "score_change",
+              "value": -5
+            }
+          }
+        },
+        {
+          "name": "辣的",
+          "type": "normal",
+          "effect": "dice_roll_check",
+          "message": "你投掷一次d6。\n点数大于3：呀呼！辣劲上来啦！下一次掷骰时骰子点数固定-1！\n点数小于等于3：呃，你确定这是辣的…失去5积分。",
+          "game_effect": {
+            "type": "dice_check",
+            "dice": "1d6",
+            "success_threshold": 4,
+            "success_effect": {
+              "type": "dice_modifier",
+              "value": -1,
+              "duration": 1
+            },
+            "fail_effect": {
+              "type": "score_change",
+              "value": -5
+            }
+          }
+        },
+        {
+          "name": "不用了",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "钓鱼大赛": {
+      "id": 16,
+      "name": "钓鱼大赛",
+      "description": "报名参加钓鱼大赛！",
+      "quote": "〈快来快来，前三名可以瓜分100积分奖金哦！〈",
+      "choices": [
+        {
+          "name": "参加",
+          "type": "special",
+          "cost": 10,
+          "effect": "competition",
+          "message": "你缴纳了10积分的报名费。\n比赛将在三个回合后开始，届时会根据所有参赛玩家投掷的d20结果进行排名：\n第一名：50积分\n第二名：30积分\n第三名：20积分",
+          "game_effect": {
+            "type": "delayed_competition",
+            "turns": 3,
+            "entry_fee": 10,
+            "rewards": [
+              50,
+              30,
+              20
+            ]
+          }
+        },
+        {
+          "name": "不参加",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "双人成列": {
+      "id": 17,
+      "name": "双人成列",
+      "description": "你看到一只穿着和服的美丽狐狸。\n〈啊呀，你一个人吗？要来和我一起玩吗？〈",
+      "quote": null,
+      "choices": [
+        {
+          "name": "好啊",
+          "type": "special",
+          "effect": "multiplayer_event",
+          "message": "〈那就开始吧～〈\n她拿出了一副骰子。\n〈我们两个人要同时投掷，点数相加来决定能走多远哦！〈\n下一次你进行掷骰时，你和这位美丽的狐狸小姐将同时投掷6d6，将你们的点数相加后，你可以任选其中6个点数作为你的出目。",
+          "game_effect": {
+            "type": "cooperative_dice",
+            "partner": "狐狸小姐",
+            "combined_roll": true
+          }
+        },
+        {
+          "name": "不了",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "〈这样呀，真可惜。〈\n无事发生。"
+        }
+      ]
+    },
+    "广场舞": {
+      "id": 18,
+      "name": "广场舞",
+      "description": "你看到了几只奇怪的鸟类在跳舞。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "加入他们",
+          "type": "normal",
+          "effect": "score_penalty",
+          "message": "你跟着它们跳了一会儿，结果被领头的鸟啄了一口。\n〈咕！（你跳得太烂了！）〈\n失去5积分。",
+          "game_effect": {
+            "type": "score_change",
+            "value": -5
+          }
+        },
+        {
+          "name": "观看",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你静静地看着它们跳舞，感到很有趣。\n无事发生。"
+        }
+      ]
+    },
+    "面具": {
+      "id": 19,
+      "name": "面具",
+      "description": "你看到地上有一个精美的面具。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "戴上",
+          "type": "special",
+          "effect": "identity_swap",
+          "message": "你戴上了面具。\n突然，你感觉到自己的身体发生了变化...\n在接下来的一回合中，你将以〈面具人〈的身份进行游戏，你的积分和进度不会受到影响，但所有其他玩家看到的都是〈面具人〈在行动。",
+          "game_effect": {
+            "type": "disguise",
+            "duration": 1,
+            "name": "面具人"
+          }
+        },
+        {
+          "name": "不戴",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "清理大师": {
+      "id": 20,
+      "name": "清理大师",
+      "description": "你看到一只正在打扫卫生的猫咪。\n〈喵～你要帮忙吗？〈",
+      "quote": null,
+      "choices": [
+        {
+          "name": "帮忙",
+          "type": "special",
+          "effect": "clear_markers",
+          "message": "你帮助猫咪打扫了一会儿。\n〈谢谢你～作为报答，我可以帮你清理一些东西哦～〈\n你可以选择清除棋盘上任意一列的所有临时标记。",
+          "game_effect": {
+            "type": "clear_temp_markers",
+            "player_choice": true
+          }
+        },
+        {
+          "name": "不帮",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "饥寒交迫": {
+      "id": 21,
+      "name": "饥寒交迫",
+      "description": "你感到又冷又饿...",
+      "quote": null,
+      "choices": [
+        {
+          "name": "继续前进",
+          "type": "normal",
+          "effect": "score_penalty",
+          "message": "你坚持着继续前进，但体力消耗让你失去了5积分。",
+          "game_effect": {
+            "type": "score_change",
+            "value": -5
+          }
+        },
+        {
+          "name": "休息一会",
+          "type": "special",
+          "cost_item": "食物",
+          "effect": "nothing",
+          "message": "你使用了食物，恢复了体力。\n无事发生。"
+        }
+      ]
+    },
+    "谁要走": {
+      "id": 22,
+      "name": "谁要走",
+      "description": "一个神秘的声音在你耳边响起。\n〈你想离开这里吗？〈",
+      "quote": null,
+      "choices": [
+        {
+          "name": "我要走",
+          "type": "normal",
+          "effect": "session_end",
+          "message": "你选择了离开。\n游戏立即结束，当前进度将被保存。",
+          "game_effect": {
+            "type": "end_session",
+            "save_progress": true
+          }
+        },
+        {
+          "name": "我不走",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你选择继续前进。\n无事发生。"
+        }
+      ]
+    },
+    "我吗": {
+      "id": 23,
+      "name": "我吗",
+      "description": "你看到前方有一个和你长得一模一样的人。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "靠近",
+          "type": "special",
+          "effect": "mirror_encounter",
+          "message": "你靠近了那个〈你〈，他/她也同时向你走来。\n当你们相遇时，〈你〈突然消失了，留下了一张纸条：\n〈这是你的另一个可能。〈\n你获得了一次重新选择上一个遭遇事件的机会。",
+          "game_effect": {
+            "type": "retry_last_encounter"
+          }
+        },
+        {
+          "name": "逃跑",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你转身就跑，不敢回头看。\n无事发生。"
+        }
+      ]
+    },
+    "薯片邀请": {
+      "id": 24,
+      "name": "薯片邀请",
+      "description": "你看到一只松鼠拿着一包薯片。\n〈要一起吃吗？〈",
+      "quote": null,
+      "choices": [
+        {
+          "name": "好啊",
+          "type": "special",
+          "effect": "score_reward",
+          "message": "你和松鼠一起分享了薯片。\n松鼠很开心，送给你5积分作为谢礼。",
+          "game_effect": {
+            "type": "score_change",
+            "value": 5
+          }
+        },
+        {
+          "name": "不了，谢谢",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "AeAe少女": {
+      "id": 25,
+      "name": "AeAe少女",
+      "description": "你遇到了一位神秘的少女。\n〈Ae～你想要什么呢？〈",
+      "quote": null,
+      "choices": [
+        {
+          "name": "积分",
+          "type": "normal",
+          "effect": "score_reward",
+          "message": "〈那就给你积分吧～Ae～〈\n你获得了10积分。",
+          "game_effect": {
+            "type": "score_change",
+            "value": 10
+          }
+        },
+        {
+          "name": "道具",
+          "type": "special",
+          "effect": "item_reward",
+          "message": "〈那就给你道具吧～Ae～〈\n你获得了一个随机道具。",
+          "game_effect": {
+            "type": "random_item"
+          }
+        },
+        {
+          "name": "什么都不要",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "〈Ae～真奇怪的人～〈\n无事发生。"
+        }
+      ]
+    },
+    "魔女的藏书室": {
+      "id": 26,
+      "name": "魔女的藏书室",
+      "description": "你发现了一间充满书籍的房间。\n一位穿着黑袍的魔女正在读书。",
+      "quote": "〈需要借阅吗？〈",
+      "choices": [
+        {
+          "name": "借书",
+          "type": "special",
+          "cost": 5,
+          "effect": "knowledge_buff",
+          "message": "你借阅了一本书，从中学到了很多知识。\n在接下来的3个回合中，你掷骰时可以重投一次（每回合限一次）。",
+          "game_effect": {
+            "type": "reroll_buff",
+            "duration": 3,
+            "per_turn_limit": 1
+          }
+        },
+        {
+          "name": "不借",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "一千零一": {
+      "id": 27,
+      "name": "一千零一",
+      "description": "你听到远处传来讲故事的声音。",
+      "quote": "〈来听故事吗？〈",
+      "choices": [
+        {
+          "name": "听故事",
+          "type": "normal",
+          "effect": "pause_turn",
+          "message": "你被故事深深吸引，不知不觉过去了一个回合。\n消耗一回合的积分。",
+          "game_effect": {
+            "type": "skip_turn",
+            "cost_score": true
+          }
+        },
+        {
+          "name": "不听",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "无事发生。"
+        }
+      ]
+    },
+    "循环往复": {
+      "id": 28,
+      "name": "循环往复",
+      "description": "你感觉周围的景色似曾相识...",
+      "quote": null,
+      "choices": [
+        {
+          "name": "继续前进",
+          "type": "normal",
+          "effect": "loop_check",
+          "message": "你投掷一次d6。\n如果点数为1，你陷入了循环，本回合作废。\n否则，无事发生。",
+          "game_effect": {
+            "type": "dice_check",
+            "dice": "1d6",
+            "fail_value": 1,
+            "fail_effect": {
+              "type": "void_turn"
+            }
+          }
+        },
+        {
+          "name": "原地休息",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你决定原地休息一会儿。\n无事发生。"
+        }
+      ]
+    },
+    "回廊": {
+      "id": 29,
+      "name": "回廊",
+      "description": "你进入了一条长长的回廊。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "快速通过",
+          "type": "normal",
+          "cost": 5,
+          "effect": "nothing",
+          "message": "你快速通过了回廊。\n消耗5积分。"
+        },
+        {
+          "name": "慢慢走",
+          "type": "special",
+          "effect": "discovery",
+          "message": "你慢慢地走着，在墙上发现了一些有趣的涂鸦。\n其中一幅涂鸦后面藏着一个宝箱！\n你获得了一个随机道具。",
+          "game_effect": {
+            "type": "random_item"
+          }
+        }
+      ]
+    },
+    "天下无程序员": {
+      "id": 30,
+      "name": "天下无程序员",
+      "description": "你看到一个正在疯狂敲代码的人。\n他看起来已经连续工作了很久...",
+      "quote": "〈救...救救我...〈",
+      "choices": [
+        {
+          "name": "帮他debug",
+          "type": "special",
+          "effect": "dice_roll_check",
+          "message": "你投掷一次d20。\n大于10：成功帮他找到了bug！他感激涕零，送给你20积分。\n小于等于10：你越改越乱，他绝望地哭了出来。失去10积分。",
+          "game_effect": {
+            "type": "dice_check",
+            "dice": "1d20",
+            "success_threshold": 11,
+            "success_effect": {
+              "type": "score_change",
+              "value": 20
+            },
+            "fail_effect": {
+              "type": "score_change",
+              "value": -10
+            }
+          }
+        },
+        {
+          "name": "默默走开",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你不想卷入这场灾难。\n无事发生。"
+        }
+      ]
+    },
+    "欢迎参观美术馆（玫瑰）": {
+      "id": 31,
+      "name": "欢迎参观美术馆（玫瑰）",
+      "description": "你进入了美术馆，眼前是一幅美丽的玫瑰画。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "仔细欣赏",
+          "type": "special",
+          "effect": "score_reward",
+          "message": "你被画作的美丽深深打动。\n获得10积分的艺术奖励。",
+          "game_effect": {
+            "type": "score_change",
+            "value": 10
+          }
+        },
+        {
+          "name": "继续参观",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你继续向下一个展厅走去。\n无事发生。"
+        }
+      ]
+    },
+    "欢迎参观美术馆（星空）": {
+      "id": 32,
+      "name": "欢迎参观美术馆（星空）",
+      "description": "你进入了美术馆，眼前是一幅璀璨的星空画。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "仔细欣赏",
+          "type": "special",
+          "effect": "dice_buff",
+          "message": "星空的光芒似乎注入了你的身体。\n下次掷骰时，所有骰子点数+1。",
+          "game_effect": {
+            "type": "dice_modifier",
+            "value": 1,
+            "duration": 1
+          }
+        },
+        {
+          "name": "继续参观",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你继续向下一个展厅走去。\n无事发生。"
+        }
+      ]
+    },
+    "欢迎参观美术馆（坏掉的）": {
+      "id": 33,
+      "name": "欢迎参观美术馆（坏掉的）",
+      "description": "你进入了美术馆，眼前的画框里只有破碎的画布。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "尝试修复",
+          "type": "special",
+          "cost": 10,
+          "effect": "restoration",
+          "message": "你花费了一些时间和精力修复画作。\n修复完成！你获得了馆长的感谢奖励：一个随机道具。",
+          "game_effect": {
+            "type": "random_item"
+          }
+        },
+        {
+          "name": "继续参观",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你继续向下一个展厅走去。\n无事发生。"
+        }
+      ]
+    },
+    "欢迎参观美术馆（羊）": {
+      "id": 34,
+      "name": "欢迎参观美术馆（羊）",
+      "description": "你进入了美术馆，眼前是一幅可爱的绵羊画。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "数羊",
+          "type": "normal",
+          "effect": "sleep",
+          "message": "一只羊，两只羊，三只羊...\n你不知不觉睡着了，醒来时已经过了一个回合。\n消耗一回合的积分。",
+          "game_effect": {
+            "type": "skip_turn",
+            "cost_score": true
+          }
+        },
+        {
+          "name": "继续参观",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你继续向下一个展厅走去。\n无事发生。"
+        }
+      ]
+    },
+    "欢迎参观美术馆（牧场）": {
+      "id": 35,
+      "name": "欢迎参观美术馆（牧场）",
+      "description": "你进入了美术馆，眼前是一幅宁静的牧场画。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "仔细欣赏",
+          "type": "special",
+          "effect": "healing",
+          "message": "画中的宁静氛围让你感到放松。\n你的压力得到缓解，获得〈平和〈buff：接下来3回合掷骰花费-1。",
+          "game_effect": {
+            "type": "cost_reduction_buff",
+            "value": 1,
+            "duration": 3
+          }
+        },
+        {
+          "name": "继续参观",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你继续向下一个展厅走去。\n无事发生。"
+        }
+      ]
+    },
+    "欢迎参观美术馆（寂）": {
+      "id": 36,
+      "name": "欢迎参观美术馆（寂）",
+      "description": "你进入了美术馆，眼前是一幅空白的画布，题为〈寂〈。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "静静凝视",
+          "type": "special",
+          "effect": "meditation",
+          "message": "在空白中，你感受到了内心的平静。\n你领悟了〈空寂之道〈，获得一次免费的重新掷骰机会（可在任意回合使用）。",
+          "game_effect": {
+            "type": "give_reroll_token"
+          }
+        },
+        {
+          "name": "继续参观",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你继续向下一个展厅走去。\n无事发生。"
+        }
+      ]
+    },
+    "欢迎参观美术馆（马戏）": {
+      "id": 37,
+      "name": "欢迎参观美术馆（马戏）",
+      "description": "你进入了美术馆，眼前是一幅充满活力的马戏团画。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "仔细欣赏",
+          "type": "special",
+          "effect": "excitement",
+          "message": "画中的欢乐气氛感染了你！\n你感到精力充沛，下次掷骰时可以额外投掷1个骰子（总共7个）。",
+          "game_effect": {
+            "type": "dice_count_change",
+            "value": 7,
+            "duration": 1
+          }
+        },
+        {
+          "name": "继续参观",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你继续向下一个展厅走去。\n无事发生。"
+        }
+      ]
+    },
+    "欢迎参观美术馆（后期）": {
+      "id": 38,
+      "name": "欢迎参观美术馆（后期）",
+      "description": "你进入了美术馆，眼前的画似乎经过了大量后期处理。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "吐槽后期",
+          "type": "normal",
+          "effect": "nothing",
+          "message": "你忍不住吐槽了一番过度的后期处理。\n馆长听到了你的评论，但没有说什么。\n无事发生。"
+        },
+        {
+          "name": "夸赞后期",
+          "type": "special",
+          "effect": "score_reward",
+          "message": "你称赞了精湛的后期技术。\n馆长很高兴，送给你5积分。",
+          "game_effect": {
+            "type": "score_change",
+            "value": 5
+          }
+        },
+        {
+          "name": "继续参观",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你继续向下一个展厅走去。\n无事发生。"
+        }
+      ]
+    },
+    "欢迎参观美术馆（寻找森林）": {
+      "id": 39,
+      "name": "欢迎参观美术馆（寻找森林）",
+      "description": "你进入了美术馆，眼前是一幅神秘的森林画。\n画中的森林似乎在召唤你...",
+      "quote": null,
+      "choices": [
+        {
+          "name": "走进画中",
+          "type": "special",
+          "effect": "forest_adventure",
+          "message": "你触碰了画布，突然被吸入了画中的森林！\n在森林中探险后，你找到了一个宝箱，获得了一个随机道具。\n然后你被传送回了美术馆。",
+          "game_effect": {
+            "type": "random_item"
+          }
+        },
+        {
+          "name": "继续参观",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你继续向下一个展厅走去。\n无事发生。"
+        }
+      ]
+    },
+    "欢迎参观美术馆（绝佳）": {
+      "id": 40,
+      "name": "欢迎参观美术馆（绝佳）",
+      "description": "你进入了美术馆的特别展厅，眼前是一幅被称为〈绝佳〈的传世名作。",
+      "quote": null,
+      "choices": [
+        {
+          "name": "深度欣赏",
+          "type": "special",
+          "effect": "masterpiece_buff",
+          "message": "你被这幅绝世杰作深深震撼。\n艺术的力量注入你的灵魂，你获得〈艺术灵感〈buff：\n接下来的3个回合中，每次掷骰后可以选择重投其中任意3个骰子。",
+          "game_effect": {
+            "type": "selective_reroll_buff",
+            "count": 3,
+            "duration": 3
+          }
+        },
+        {
+          "name": "继续参观",
+          "type": "peaceful",
+          "effect": "nothing",
+          "message": "你继续向下一个展厅走去。\n无事发生。"
+        }
+      ]
+    }
+  }
+}

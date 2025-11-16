@@ -70,6 +70,9 @@ class EnhancedTrapSystem(TrapSystem):
         # 加载插件配置
         self._load_plugin_configs()
 
+        # 自动加载内置插件
+        self._load_builtin_plugins()
+
     def _load_plugin_configs(self):
         """加载插件配置"""
         config_file = "config/trap_plugins.json"
@@ -91,6 +94,21 @@ class EnhancedTrapSystem(TrapSystem):
                     )
             except Exception as e:
                 print(f"加载陷阱插件配置失败: {e}")
+
+    def _load_builtin_plugins(self):
+        """加载内置陷阱插件"""
+        try:
+            from .trap_plugins import TRAP_PLUGINS, create_trap_plugin
+
+            for trap_name, plugin_class in TRAP_PLUGINS.items():
+                if trap_name in self.plugin_configs:
+                    plugin = create_trap_plugin(trap_name)
+                    if plugin:
+                        self.register_plugin(trap_name, plugin)
+        except ImportError:
+            print("警告：无法导入内置陷阱插件")
+        except Exception as e:
+            print(f"加载内置陷阱插件失败: {e}")
 
     def register_plugin(self, plugin_name: str, plugin: TrapPluginBase) -> bool:
         """注册陷阱插件"""

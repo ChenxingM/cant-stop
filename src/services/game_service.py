@@ -21,8 +21,8 @@ class GameService:
         """注册新玩家"""
         try:
             # 验证阵营
-            if faction_name not in ["收养人", "Aonreth"]:
-                return False, "无效的阵营名称，请选择 '收养人' 或 'Aonreth'"
+            if faction_name not in ["收养人", "Aeonreth"]:
+                return False, "无效的阵营名称，请选择 '收养人' 或 'Aeonreth'"
 
             faction = Faction.ADOPTER if faction_name == "收养人" else Faction.AONRETH
 
@@ -30,7 +30,7 @@ class GameService:
             existing_player = self.db.get_player(player_id)
             if existing_player:
                 # 获取玩家当前阵营名称
-                current_faction = "收养人" if existing_player.faction == Faction.ADOPTER else "Aonreth"
+                current_faction = "收养人" if existing_player.faction == Faction.ADOPTER else "Aeonreth"
 
                 # 检查是否修改阵营
                 if existing_player.faction != faction:
@@ -306,6 +306,388 @@ class GameService:
         except Exception as e:
             return False, f"添加积分失败：{str(e)}"
 
+    # ========== 道具系统方法 ==========
+
+    def purchase_item(self, player_id: str, item_name: str) -> Tuple[bool, str]:
+        """购买道具"""
+        from ..config.config_manager import get_config
+        from ..core.item_system import get_buff_manager
+
+        try:
+            player = self._load_player(player_id)
+            if not player:
+                return False, "玩家不存在"
+
+            # 获取道具配置
+            items_config = get_config("game_config", "game.items", {})
+            item_config = items_config.get(item_name)
+
+            if not item_config:
+                return False, f"道具 '{item_name}' 不存在"
+
+            # 检查道具是否可交易
+            if not item_config.get("can_trade", True):
+                return False, f"道具 '{item_name}' 不可在商店购买"
+
+            # 检查阵营限制
+            faction_requirement = item_config.get("faction", "通用")
+            if faction_requirement != "通用":
+                player_faction_name = "收养人" if player.faction == Faction.ADOPTER else "Aeonreth"
+                if faction_requirement != player_faction_name:
+                    return False, f"此道具仅限 {faction_requirement} 阵营购买"
+
+            # 获取道具价格
+            base_price = item_config.get("price", 0)
+
+            # 检查折扣buff
+            buff_manager = get_buff_manager()
+            discount_rate = buff_manager.get_shop_discount(player_id)
+            final_price = int(base_price * discount_rate)
+
+            # 检查积分是否足够
+            if player.current_score < final_price:
+                return False, f"积分不足！需要 {final_price} 积分，当前只有 {player.current_score} 积分"
+
+            # 扣除积分
+            if not player.spend_score(final_price, f"购买道具:{item_name}"):
+                return False, "扣除积分失败"
+
+            # 添加道具到库存
+            item_type = item_config.get("type", "consumable")
+            self.db.add_item_to_inventory(player_id, item_name, item_type, quantity=1)
+
+            # 更新玩家信息
+            self.db.update_player(player)
+
+            # 消耗折扣buff（如果有）
+            if discount_rate < 1.0:
+                from ..core.item_system import BuffType
+                buff_manager.consume_buff(player_id, BuffType.SHOP_DISCOUNT)
+
+            # 构建购买成功消息
+            message = f"✅ 购买成功！\n"
+            message += f"🎁 道具：{item_name}\n"
+            if discount_rate < 1.0:
+                discount_percent = int((1 - discount_rate) * 100)
+                message += f"💰 原价：{base_price} 积分\n"
+                message += f"🎉 折扣：{discount_percent}% OFF\n"
+                message += f"💵 实付：{final_price} 积分\n"
+            else:
+                message += f"💰 花费：{final_price} 积分\n"
+            message += f"📊 剩余积分：{player.current_score}"
+
+            return True, message
+
+        except Exception as e:
+            return False, f"购买道具失败：{str(e)}"
+
+    def use_item(self, player_id: str, item_name: str, choice: Optional[str] = None) -> Tuple[bool, str, Dict[str, Any]]:
+        """使用道具"""
+        from ..config.config_manager import get_config
+        from ..core.item_system import ItemEffectExecutor, get_buff_manager
+
+        try:
+            player = self._load_player(player_id)
+            if not player:
+                return False, "玩家不存在", {}
+
+            # 检查道具是否存在于库存
+            item_quantity = self.db.get_item_quantity(player_id, item_name)
+            if item_quantity <= 0:
+                return False, f"你没有道具 '{item_name}'", {}
+
+            # 获取道具配置
+            items_config = get_config("game_config", "game.items", {})
+            item_config = items_config.get(item_name)
+
+            if not item_config:
+                return False, f"道具 '{item_name}' 配置不存在", {}
+
+            # 检查是否需要交互式选择
+            if item_config.get("interactive") and not choice:
+                choices = item_config.get("choices", [])
+                message = f"🎭 请选择使用方式：\n"
+                for i, c in enumerate(choices, 1):
+                    message += f"{i}. {c['name']}\n"
+                message += f"\n💡 使用格式：使用{item_name} [选项名]"
+                return False, message, {"needs_choice": True}
+
+            # 执行道具效果
+            config = get_config("game_config")
+            buff_manager = get_buff_manager()
+            executor = ItemEffectExecutor(buff_manager, config)
+
+            success, effect_message, extra_data = executor.execute_effect(player_id, item_name, choice)
+
+            if not success:
+                return False, effect_message, extra_data
+
+            # 处理额外数据（如积分奖励）
+            if "score_gain" in extra_data:
+                player.add_score(extra_data["score_gain"], f"道具:{item_name}")
+                self.db.update_player(player)
+
+            # 处理道具奖励
+            if "item_reward" in extra_data:
+                reward_item = extra_data["item_reward"]
+                self.db.add_item_to_inventory(player_id, reward_item, "consumable", 1)
+
+            # 处理刷新道具
+            if "refreshed_item" in extra_data:
+                refreshed_item = extra_data["refreshed_item"]
+                self.db.add_item_to_inventory(player_id, refreshed_item, "consumable", 1)
+
+            # 更新使用次数并移除消耗型道具
+            item_type = item_config.get("type", "consumable")
+            if item_type in ["consumable", "achievement_reward"]:
+                self.db.remove_item_from_inventory(player_id, item_name, 1)
+
+            self.db.update_item_used_count(player_id, item_name)
+
+            # 构建使用成功消息
+            message = f"✨ 使用道具：{item_name}\n"
+            if choice:
+                message += f"📌 选择：{choice}\n"
+            message += f"\n{effect_message}"
+
+            return True, message, extra_data
+
+        except Exception as e:
+            return False, f"使用道具失败：{str(e)}", {}
+
+    def view_inventory(self, player_id: str) -> Tuple[bool, str]:
+        """查看玩家库存"""
+        try:
+            player = self._load_player(player_id)
+            if not player:
+                return False, "玩家不存在"
+
+            inventory = self.db.get_player_inventory(player_id)
+
+            if not inventory:
+                return True, "📦 你的背包是空的"
+
+            message = "📦 你的库存\n"
+            message += "━" * 40 + "\n"
+
+            for item in inventory:
+                message += f"🎁 {item['item_name']} x{item['quantity']}\n"
+                message += f"   类型：{item['item_type']} | 使用次数：{item['used_count']}\n"
+
+            message += "━" * 40 + "\n"
+            message += f"💡 使用道具：使用[道具名]"
+
+            return True, message
+
+        except Exception as e:
+            return False, f"查看库存失败：{str(e)}"
+
+    def get_shop_items(self, player_id: str) -> Tuple[bool, str]:
+        """获取商店道具列表"""
+        from ..config.config_manager import get_config
+        from ..core.item_system import get_buff_manager
+
+        try:
+            player = self._load_player(player_id)
+            if not player:
+                return False, "玩家不存在"
+
+            items_config = get_config("game_config", "game.items", {})
+
+            # 获取玩家阵营
+            player_faction_name = "收养人" if player.faction == Faction.ADOPTER else "Aeonreth"
+
+            # 获取折扣buff
+            buff_manager = get_buff_manager()
+            discount_rate = buff_manager.get_shop_discount(player_id)
+
+            message = "🏪 欢迎来到道具商店！\n"
+            if discount_rate < 1.0:
+                discount_percent = int((1 - discount_rate) * 100)
+                message += f"🎉 当前享有 {discount_percent}% 折扣！\n"
+
+            message += "━" * 40 + "\n"
+
+            shop_items = []
+            for item_name, item_config in items_config.items():
+                # 过滤不可交易的道具
+                if not item_config.get("can_trade", True):
+                    continue
+
+                # 检查阵营限制
+                faction_requirement = item_config.get("faction", "通用")
+                if faction_requirement != "通用" and faction_requirement != player_faction_name:
+                    continue
+
+                base_price = item_config.get("price", 0)
+                final_price = int(base_price * discount_rate)
+
+                shop_items.append({
+                    'name': item_name,
+                    'base_price': base_price,
+                    'final_price': final_price,
+                    'description': item_config.get("description", ""),
+                    'faction': faction_requirement
+                })
+
+            # 按价格排序
+            shop_items.sort(key=lambda x: x['final_price'])
+
+            for item in shop_items:
+                message += f"\n🎁 {item['name']}\n"
+                message += f"   {item['description']}\n"
+                message += f"   阵营：{item['faction']}\n"
+                if discount_rate < 1.0 and item['base_price'] != item['final_price']:
+                    message += f"   价格：{item['base_price']} → {item['final_price']} 积分\n"
+                else:
+                    message += f"   价格：{item['final_price']} 积分\n"
+
+            message += "\n━" * 40 + "\n"
+            message += f"💰 你的积分：{player.current_score}\n"
+            message += f"💡 购买道具：购买[道具名]"
+
+            return True, message
+
+        except Exception as e:
+            return False, f"获取商店信息失败：{str(e)}"
+
+    # ========== 遭遇事件系统方法 ==========
+
+    def trigger_encounter(self, player_id: str, encounter_name: str) -> Tuple[bool, str]:
+        """触发遭遇事件"""
+        from ..core.encounter_system import get_encounter_manager
+
+        try:
+            encounter_mgr = get_encounter_manager()
+            success, message = encounter_mgr.trigger_encounter(player_id, encounter_name)
+            return success, message
+        except Exception as e:
+            return False, f"触发遭遇失败：{str(e)}"
+
+    def process_encounter_choice(self, player_id: str, choice_name: str) -> Tuple[bool, str]:
+        """处理遭遇选择"""
+        from ..core.encounter_system import get_encounter_manager
+
+        try:
+            encounter_mgr = get_encounter_manager()
+            success, message, result_data = encounter_mgr.process_choice(player_id, choice_name)
+
+            if not success:
+                return False, message
+
+            # 执行游戏效果
+            effect_message = self._execute_encounter_effect(player_id, result_data)
+
+            # 组合消息
+            full_message = f"✨ {message}"
+            if effect_message:
+                full_message += f"\n\n{effect_message}"
+
+            return True, full_message
+
+        except Exception as e:
+            return False, f"处理遭遇选择失败：{str(e)}"
+
+    def process_encounter_follow_up(self, player_id: str, response: str) -> Tuple[bool, str]:
+        """处理遭遇follow_up响应"""
+        from ..core.encounter_system import get_encounter_manager
+
+        try:
+            encounter_mgr = get_encounter_manager()
+            success, message, reward_data = encounter_mgr.process_follow_up(player_id, response)
+
+            if not success:
+                return False, ""
+
+            # 执行奖励
+            if reward_data:
+                reward_message = self._execute_encounter_effect(player_id, {"game_effect": reward_data})
+                if reward_message:
+                    message += f"\n{reward_message}"
+
+            return True, message
+
+        except Exception as e:
+            return False, f"处理follow_up失败：{str(e)}"
+
+    def _execute_encounter_effect(self, player_id: str, result_data: Dict[str, Any]) -> str:
+        """执行遭遇效果"""
+        from ..core.effect_handler import get_effect_handler
+        from ..core.game_engine import GameEngine
+
+        messages = []
+        game_effect = result_data.get("game_effect", {})
+
+        if not game_effect:
+            return ""
+
+        player = self._load_player(player_id)
+        if not player:
+            return ""
+
+        # 扣除消耗
+        cost = result_data.get("cost", 0)
+        if cost > 0:
+            if not player.spend_score(cost, "遭遇消耗"):
+                return "❌ 积分不足"
+            self.db.update_player(player)
+            messages.append(f"💰 消耗 {cost} 积分")
+
+        # 扣除道具
+        cost_item = result_data.get("cost_item")
+        if cost_item:
+            if self.db.get_item_quantity(player_id, cost_item) <= 0:
+                return f"❌ 需要道具：{cost_item}"
+            self.db.remove_item_from_inventory(player_id, cost_item, 1)
+            messages.append(f"🎁 消耗道具：{cost_item}")
+
+        # 使用效果处理器执行游戏效果
+        try:
+            effect_handler = get_effect_handler()
+
+            # 获取当前回合数（如果有活跃会话）
+            turn_number = 0
+            active_session = self.engine.get_player_active_session(player_id)
+            if active_session:
+                turn_number = active_session.turn_number
+
+            # 应用效果
+            success, effect_message, effect_data = effect_handler.apply_effect(
+                player_id, game_effect, self.engine, turn_number
+            )
+
+            if success and effect_message:
+                messages.append(effect_message)
+
+        except Exception as e:
+            messages.append(f"⚠️ 效果执行出错: {str(e)}")
+
+        # 追踪成就
+        choice_type = result_data.get("choice_type")
+        self._track_encounter_achievement(player_id, choice_type)
+
+        return "\n".join(messages)
+
+    def _track_encounter_achievement(self, player_id: str, choice_type: str):
+        """追踪遭遇相关成就"""
+        from ..core.encounter_system import get_encounter_manager
+
+        encounter_mgr = get_encounter_manager()
+
+        # 平平淡淡才是真 - 连续3次和平选择
+        if choice_type == "peaceful":
+            peaceful_count = encounter_mgr.get_consecutive_choice_type(player_id, "peaceful")
+            if peaceful_count >= 3:
+                # TODO: 解锁成就"平平淡淡才是真"
+                pass
+
+        # 善恶有报 - 连续3次特殊效果
+        elif choice_type == "special":
+            special_count = encounter_mgr.get_consecutive_choice_type(player_id, "special")
+            if special_count >= 3:
+                # TODO: 解锁成就"善恶有报"
+                pass
+
     def get_leaderboard(self, limit: int = 10) -> Tuple[bool, str]:
         """获取排行榜"""
         try:
@@ -393,6 +775,28 @@ class GameService:
             return success, message
         except Exception as e:
             return False, f"移除陷阱失败：{str(e)}"
+
+    def set_manual_encounter(self, encounter_name: str, column: int, position: int) -> Tuple[bool, str]:
+        """手动设置单个遭遇位置"""
+        try:
+            success, message = self.engine.encounter_config.set_manual_encounter(encounter_name, column, position)
+            if success:
+                # 更新map_events
+                self.engine.update_map_events_from_config()
+            return success, message
+        except Exception as e:
+            return False, f"手动设置遭遇失败：{str(e)}"
+
+    def remove_encounter_at_position(self, column: int, position: int) -> Tuple[bool, str]:
+        """移除指定位置的遭遇"""
+        try:
+            success, message = self.engine.encounter_config.remove_encounter_at_position(column, position)
+            if success:
+                # 更新map_events
+                self.engine.update_map_events_from_config()
+            return success, message
+        except Exception as e:
+            return False, f"移除遭遇失败：{str(e)}"
 
     def _load_player_and_session(self, player_id: str) -> Tuple[Optional[Player], Optional[GameSession]]:
         """加载玩家和会话"""
@@ -786,3 +1190,98 @@ class GameService:
 
         except Exception as e:
             return False, f"验证积分系统失败：{str(e)}"
+
+    def force_fail_turn(self, player_id: str) -> Tuple[bool, str]:
+        """
+        强制失败当前轮次（进度回退）
+        玩家主动确认无法继续时使用
+        """
+        try:
+            player = self.db.get_player(player_id)
+            if not player:
+                return False, "玩家不存在"
+
+            # 获取活跃会话
+            session = self.engine.get_player_active_session(player_id)
+            if not session:
+                return False, "没有进行中的轮次"
+
+            # 检查是否有临时标记
+            if not session.temporary_markers:
+                return False, "当前没有临时标记，无需回退"
+
+            # 清空临时标记
+            markers_info = [(m.column, m.position) for m in session.temporary_markers]
+            session.temporary_markers.clear()
+
+            # 更新会话状态
+            session.turn_state = "END_OF_TURN"
+            self.db.save_game_session(session)
+
+            # 构建消息
+            message = "📉 进度回退\n"
+            message += "━━━━━━━━━━━━━━━━\n"
+            message += "所有临时标记已清空：\n"
+            for column, position in markers_info:
+                message += f"  • 列{column}：位置{position}\n"
+            message += "\n本轮次结束。\n"
+
+            # 显示永久棋子位置
+            if player.progress and player.progress.permanent_progress:
+                message += "\n当前永久棋子位置：\n"
+                for column, position in player.progress.permanent_progress.items():
+                    if position > 0:
+                        message += f"  列{column}：{position}\n"
+
+            return True, message
+
+        except Exception as e:
+            return False, f"进度回退失败：{str(e)}"
+
+    def claim_reward(self, player_id: str, reward_type: str, times: int = 1, doubled: bool = False) -> Tuple[bool, str]:
+        """
+        领取奖励
+
+        Args:
+            player_id: 玩家ID
+            reward_type: 奖励类型（草图、精致小图、精草大图、精致大图等）
+            times: 领取次数
+            doubled: 是否翻倍
+        """
+        try:
+            player = self.db.get_player(player_id)
+            if not player:
+                return False, "玩家不存在"
+
+            # 奖励积分配置
+            reward_config = {
+                "草图": 10,
+                "精致小图": 20,
+                "精草大图": 30,
+                "精致大图": 40,
+                "打卡": 15,
+            }
+
+            base_score = reward_config.get(reward_type, 10)
+            multiplier = 2 if doubled else 1
+            total_score = base_score * times * multiplier
+
+            # 添加积分
+            player.add_score(total_score, f"领取{reward_type}奖励x{times}{'(翻倍)' if doubled else ''}")
+            self.db.update_player(player)
+
+            # 构建消息
+            message = "✨ 奖励领取成功\n"
+            message += "━━━━━━━━━━━━━━━━\n"
+            message += f"奖励类型：{reward_type}\n"
+            message += f"领取次数：{times}\n"
+            if doubled:
+                message += f"💫 奖励翻倍！\n"
+            message += f"获得积分：+{total_score}\n"
+            message += f"━━━━━━━━━━━━━━━━\n"
+            message += f"当前积分：{player.current_score + total_score}"
+
+            return True, message
+
+        except Exception as e:
+            return False, f"领取奖励失败：{str(e)}"

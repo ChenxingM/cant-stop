@@ -434,7 +434,7 @@ class GMOverviewPanel(QWidget):
             # 根据阵营设置颜色
             if player.get("faction") == "收养人":
                 faction_item.setBackground(QColor("#e3f2fd"))
-            elif player.get("faction") == "Aonreth":
+            elif player.get("faction") == "Aeonreth":
                 faction_item.setBackground(QColor("#fff3e0"))
             self.players_table.setItem(i, 1, faction_item)
 

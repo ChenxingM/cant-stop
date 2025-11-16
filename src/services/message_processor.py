@@ -74,6 +74,10 @@ class MessageProcessor:
 
             # 商店系统
             "道具商店": self._handle_shop,
+            "查看库存": self._handle_inventory,
+            "我的道具": self._handle_inventory,
+            "背包": self._handle_inventory,
+            "查看背包": self._handle_inventory,  # 新增：查看背包命令
             "购买丑喵玩偶": self._handle_buy_item,
             "捏捏丑喵玩偶": self._handle_use_item,
 
@@ -94,6 +98,108 @@ class MessageProcessor:
             # 查询功能
             "排行榜": self._handle_leaderboard,
             "帮助": self._handle_help,
+            "help": self._handle_help,
+            "成就一览": self._handle_achievements,
+            "我的成就": self._handle_achievements,
+
+            # 失败处理
+            "进度回退": self._handle_progress_retreat,
+
+            # 遭遇事件选项 - 根据encounters.json的所有选项
+            "吓死我了": self._handle_encounter_choice,
+            "摸摸猫": self._handle_encounter_choice,
+            "静静看它走过去": self._handle_encounter_choice,
+            "绕过去": self._handle_encounter_choice,
+            "直接过去": self._handle_encounter_choice,
+            "靠近小花": self._handle_encounter_choice,
+            "浇水": self._handle_encounter_choice,
+            "我没兴趣": self._handle_encounter_choice,
+            "晃得头晕，走了": self._handle_encounter_choice,
+            "靠近查看": self._handle_encounter_choice,
+            "我要申请更多骰子": self._handle_encounter_choice,
+            "仔细观察塞过来的骰子": self._handle_encounter_choice,
+            "好呀好呀": self._handle_encounter_choice,
+            "还是算了": self._handle_encounter_choice,
+            "啊啊啊啊啊": self._handle_encounter_choice,
+            "小钱钱！赶快捡钱！": self._handle_encounter_choice,
+            "先不管钱了！靠近丝塔茜！": self._handle_encounter_choice,
+            "321跳": self._handle_encounter_choice,
+            "过去": self._handle_encounter_choice,
+            "未来": self._handle_encounter_choice,
+            # 神奇小药丸
+            "红色": self._handle_encounter_choice,
+            "蓝色": self._handle_encounter_choice,
+            "我想要黑色的": self._handle_encounter_choice,
+            "不用了，谢谢": self._handle_encounter_choice,
+            # 积木
+            "好": self._handle_encounter_choice,
+            "不了": self._handle_encounter_choice,
+            # 自助问答
+            "敲敲头": self._handle_encounter_choice,
+            "摸摸肚子": self._handle_encounter_choice,
+            # 人才市场
+            "好啊": self._handle_encounter_choice,
+            "薪资太少了，我不干": self._handle_encounter_choice,
+            # 房产中介
+            "看看": self._handle_encounter_choice,
+            "太贵了": self._handle_encounter_choice,
+            # 奇异的菜肴
+            "甜的": self._handle_encounter_choice,
+            "辣的": self._handle_encounter_choice,
+            "不用了": self._handle_encounter_choice,
+            # 钓鱼大赛
+            "参加": self._handle_encounter_choice,
+            "不参加": self._handle_encounter_choice,
+            # 广场舞
+            "加入他们": self._handle_encounter_choice,
+            "观看": self._handle_encounter_choice,
+            # 面具
+            "戴上": self._handle_encounter_choice,
+            "不戴": self._handle_encounter_choice,
+            # 清理大师
+            "帮忙": self._handle_encounter_choice,
+            "不帮": self._handle_encounter_choice,
+            # 饥寒交迫 & 循环往复
+            "继续前进": self._handle_encounter_choice,
+            "休息一会": self._handle_encounter_choice,
+            # 谁要走
+            "我要走": self._handle_encounter_choice,
+            "我不走": self._handle_encounter_choice,
+            # 我吗
+            "靠近": self._handle_encounter_choice,
+            "逃跑": self._handle_encounter_choice,
+            # 薯片邀请
+            "不了，谢谢": self._handle_encounter_choice,
+            # AeAe少女
+            "积分": self._handle_encounter_choice,
+            "道具": self._handle_encounter_choice,
+            "什么都不要": self._handle_encounter_choice,
+            # 魔女的藏书室
+            "借书": self._handle_encounter_choice,
+            "不借": self._handle_encounter_choice,
+            # 一千零一
+            "听故事": self._handle_encounter_choice,
+            "不听": self._handle_encounter_choice,
+            # 循环往复
+            "原地休息": self._handle_encounter_choice,
+            # 回廊
+            "快速通过": self._handle_encounter_choice,
+            "慢慢走": self._handle_encounter_choice,
+            # 天下无程序员
+            "帮他debug": self._handle_encounter_choice,
+            "默默走开": self._handle_encounter_choice,
+            # 美术馆系列
+            "仔细欣赏": self._handle_encounter_choice,
+            "继续参观": self._handle_encounter_choice,
+            "数羊": self._handle_encounter_choice,
+            "静静凝视": self._handle_encounter_choice,
+            "深度欣赏": self._handle_encounter_choice,
+            "吐槽后期": self._handle_encounter_choice,
+            "夸赞后期": self._handle_encounter_choice,
+            "走进画中": self._handle_encounter_choice,
+            "尝试修复": self._handle_encounter_choice,
+            # Follow-up响应
+            "谢谢财神": self._handle_encounter_follow_up,
         })
 
         # 注册模式处理器
@@ -111,8 +217,9 @@ class MessageProcessor:
             # 超常发挥奖励（支持倍数）
             (r"我超级满意这张图(\d+)", self._handle_super_satisfied),
 
-            # 领取奖励（图片奖励已禁用）
-            # (r"领取(.+)奖励(\d+)", self._handle_reward_with_number),
+            # 领取奖励
+            (r"领取(.+)奖励(\d+)\*2", self._handle_reward_doubled),
+            (r"领取(.+)奖励(\d+)", self._handle_reward_with_number),
 
             # 道具操作
             (r"购买(.+)", self._handle_buy_specific_item),
@@ -158,6 +265,41 @@ class MessageProcessor:
         try:
             content = message.content.strip()
 
+            # 定义不需要游戏状态的命令（任何人都可以执行）
+            public_commands = {
+                "选择阵营", "help", "排行榜", "查看成就一览",
+                "道具商店", "查看库存", "我的道具", "背包", "查看背包"
+            }
+
+            # 定义需要玩家注册但不需要活跃游戏会话的命令
+            registered_commands = public_commands | {
+                "轮次开始", "开始新轮次", "恢复游戏"
+            }
+
+            # 检查是否是公共命令或匹配公共命令模式
+            is_public_command = content in public_commands
+            is_registered_command = content in registered_commands
+
+            # 如果不是公共命令，检查玩家是否已注册
+            if not is_public_command:
+                player = self.game_service.db.get_player(message.user_id)
+                if not player:
+                    return BotResponse(
+                        content="请先使用 \"选择阵营：收养人\" 或 \"选择阵营：Aeonreth\" 注册玩家",
+                        message_type=MessageType.COMMAND,
+                        should_mention=True
+                    )
+
+                # 如果不是仅需注册的命令，检查是否有活跃游戏会话
+                if not is_registered_command:
+                    session = self.game_service.db.get_player_active_session(message.user_id)
+                    if not session:
+                        return BotResponse(
+                            content="你当前没有进行中的游戏，请先使用 \"轮次开始\" 命令开始游戏",
+                            message_type=MessageType.COMMAND,
+                            should_mention=True
+                        )
+
             # 尝试命令匹配
             if content in self.command_handlers:
                 return await self._execute_handler(self.command_handlers[content], message)
@@ -200,7 +342,7 @@ class MessageProcessor:
     def _handle_faction_selection(self, message: UserMessage) -> BotResponse:
         """处理阵营选择（无参数）"""
         return BotResponse(
-            content="请使用格式：选择阵营：收养人 或 选择阵营：Aonreth",
+            content="请使用格式：选择阵营：收养人 或 选择阵营：Aeonreth",
             message_type=MessageType.COMMAND
         )
 
@@ -453,78 +595,84 @@ class MessageProcessor:
     # 商店系统处理器
     def _handle_shop(self, message: UserMessage) -> BotResponse:
         """处理道具商店查看"""
-        shop_content = """
-🛒 道具商店
-===========
-常驻道具：
-• 丑喵玩偶 - 150积分
-  每天限3次使用，随机获得奖励
+        success, shop_content = self.game_service.get_shop_items(message.user_id)
 
-暂无其他道具上架
-使用 '购买<道具名>' 购买道具
-        """
         return BotResponse(
-            content=shop_content.strip(),
+            content=shop_content,
+            message_type=MessageType.QUERY,
+            should_mention=True
+        )
+
+    def _handle_inventory(self, message: UserMessage) -> BotResponse:
+        """处理查看库存"""
+        success, inventory_content = self.game_service.view_inventory(message.user_id)
+
+        return BotResponse(
+            content=inventory_content,
             message_type=MessageType.QUERY,
             should_mention=True
         )
 
     def _handle_buy_item(self, message: UserMessage) -> BotResponse:
-        """处理购买丑喵玩偶"""
-        # 这里可以实现具体的购买逻辑
-        return BotResponse(
-            content="购买功能待实现，敬请期待！",
-            message_type=MessageType.COMMAND,
-            should_mention=True
-        )
+        """处理购买丑喵玩偶（向后兼容）"""
+        return self._handle_buy_specific_item(message, type('Match', (), {'group': lambda self, n: "丑喵玩偶"})())
 
     def _handle_use_item(self, message: UserMessage) -> BotResponse:
-        """处理使用丑喵玩偶"""
-        import random
-
-        # 模拟玩偶使用
-        outcomes = [
-            ("玩偶发出了吱吱的响声，并从你手中滑了出去", 0),
-            ("玩偶发出了呼噜呼噜的响声，似乎很高兴", random.randint(3, 18))
-        ]
-
-        outcome, bonus = random.choice(outcomes)
-
-        if bonus > 0:
-            self.game_service.add_score(message.user_id, bonus, "丑喵玩偶奖励")
-            content = f"{outcome}，你获得了{bonus}积分！"
-        else:
-            content = outcome
-
-        return BotResponse(
-            content=content,
-            message_type=MessageType.GAME_ACTION,
-            should_mention=True
-        )
+        """处理使用丑喵玩偶（向后兼容）"""
+        return self._handle_use_specific_item(message, type('Match', (), {'group': lambda self, n: "丑喵玩偶"})())
 
     def _handle_buy_specific_item(self, message: UserMessage, match: re.Match) -> BotResponse:
         """处理购买特定道具"""
         item_name = match.group(1)
+        success, result_message = self.game_service.purchase_item(message.user_id, item_name)
+
         return BotResponse(
-            content=f"购买 {item_name} 功能待实现",
-            message_type=MessageType.COMMAND,
+            content=result_message,
+            message_type=MessageType.COMMAND if success else MessageType.ERROR,
             should_mention=True
         )
 
     def _handle_use_specific_item(self, message: UserMessage, match: re.Match) -> BotResponse:
         """处理使用特定道具"""
-        item_name = match.group(1)
+        # 解析道具名和选项
+        full_match = match.group(1)
+        parts = full_match.split(maxsplit=1)
+        item_name = parts[0]
+        choice = parts[1] if len(parts) > 1 else None
+
+        success, result_message, extra_data = self.game_service.use_item(message.user_id, item_name, choice)
+
+        # 如果需要选择，提示用户
+        if not success and extra_data.get("needs_choice"):
+            message_type = MessageType.QUERY
+        else:
+            message_type = MessageType.GAME_ACTION if success else MessageType.ERROR
+
         return BotResponse(
-            content=f"使用 {item_name} 功能待实现",
-            message_type=MessageType.COMMAND,
+            content=result_message,
+            message_type=message_type,
             should_mention=True
         )
 
     def _handle_add_item_to_shop(self, message: UserMessage, match: re.Match) -> BotResponse:
-        """处理添加道具到商店"""
+        """处理添加道具到商店（GM功能）"""
         item_name = match.group(1)
+
+        # GM功能：直接给玩家添加道具
+        success = self.game_service.db.add_item_to_inventory(
+            message.user_id,
+            item_name,
+            "consumable",
+            1
+        )
+
+        if success:
+            content = f"✅ 已获得道具：{item_name}"
+        else:
+            content = f"❌ 添加道具失败：{item_name}"
+
         return BotResponse(
-            content=f"道具 {item_name} 已添加到商店（功能待实现）",
+            content=content,
             message_type=MessageType.COMMAND,
             should_mention=True
         )
@@ -546,7 +694,7 @@ class MessageProcessor:
 
 🏁 游戏开始
 -----------
-选择阵营：收养人/Aonreth - 选择游戏阵营
+选择阵营：收养人/Aeonreth - 选择游戏阵营
 轮次开始 - 开始新轮次
 
 🎲 游戏操作
@@ -630,14 +778,44 @@ class MessageProcessor:
                 response_text += f"\n积分添加失败：{score_msg}"
 
         elif choice == "都是我掉的":
-            # 失去所有临时标记的逻辑应该在这里实现
-            # TODO: 需要游戏服务实现清除临时标记的方法
-            pass
+            # 失去所有临时标记
+            from ..core.item_system import get_buff_manager
+
+            # 获取玩家当前会话
+            player = self.game_service.db.get_player(message.user_id)
+            if player:
+                session = self.game_service.engine.get_player_active_session(message.user_id)
+                if session:
+                    # 清除所有临时标记
+                    columns_to_clear = list(session.temporary_markers.keys())
+                    for column in columns_to_clear:
+                        session.remove_temporary_marker(column)
+
+                    # 保存会话
+                    self.game_service.db.save_game_session(session)
+
+                    if columns_to_clear:
+                        response_text += f"\n失去了 {len(columns_to_clear)} 个临时标记（列：{', '.join(map(str, columns_to_clear))}）"
+                    else:
+                        response_text += "\n（你当前没有临时标记）"
+                else:
+                    response_text += "\n无法找到当前游戏会话"
+            else:
+                response_text += "\n无法找到玩家信息"
 
         elif choice == "金骰子":
             # 下次掷骰结果+1的祝福效果
-            # TODO: 需要游戏服务实现祝福效果系统
-            pass
+            from ..core.item_system import get_buff_manager, PlayerBuff, BuffType
+
+            buff_manager = get_buff_manager()
+            buff = PlayerBuff(
+                buff_type=BuffType.DICE_MODIFIER,
+                value=1,
+                duration=1,
+                source="河神金骰子"
+            )
+            buff_manager.add_buff(message.user_id, buff)
+            response_text += "\n金骰子的祝福已生效！下次掷骰所有结果+1！"
 
         elif choice == "银骰子":
             # 给予银骰子祝福 - 下次掷骰可重骰一次
@@ -658,6 +836,46 @@ class MessageProcessor:
             message_type=MessageType.GAME_ACTION,
             should_mention=True
         )
+
+    # 遭遇事件处理器
+    def _handle_encounter_choice(self, message: UserMessage) -> BotResponse:
+        """处理遭遇事件选择"""
+        choice_name = message.content.strip()
+
+        # 调试：检查pending encounters
+        from ..core.encounter_system import get_encounter_manager
+        encounter_mgr = get_encounter_manager()
+        has_pending = message.user_id in encounter_mgr.pending_encounters
+        print(f"[DEBUG] 玩家 {message.user_id} 尝试选择: {choice_name}, 有pending遭遇: {has_pending}")
+
+        success, result_msg = self.game_service.process_encounter_choice(
+            message.user_id, choice_name
+        )
+
+        print(f"[DEBUG] 处理结果: success={success}, msg={result_msg[:50] if result_msg else 'None'}")
+
+        return BotResponse(
+            content=result_msg,
+            message_type=MessageType.GAME_ACTION if success else MessageType.ERROR,
+            should_mention=True
+        )
+
+    def _handle_encounter_follow_up(self, message: UserMessage) -> BotResponse:
+        """处理遭遇follow_up响应"""
+        response = message.content.strip()
+        success, result_msg = self.game_service.process_encounter_follow_up(
+            message.user_id, response
+        )
+
+        if success and result_msg:
+            return BotResponse(
+                content=result_msg,
+                message_type=MessageType.GAME_ACTION,
+                should_mention=True
+            )
+
+        # 如果不是follow_up，返回None让其他处理器处理
+        return None
 
     def _handle_player_list(self, message: UserMessage) -> BotResponse:
         """显示所有玩家列表"""
@@ -795,6 +1013,86 @@ class MessageProcessor:
         return BotResponse(
             content=result_message,
             message_type=MessageType.GAME_ACTION,
+            should_mention=True
+        )
+
+    def _handle_achievements(self, message: UserMessage) -> BotResponse:
+        """处理成就一览"""
+        try:
+            from ..core.achievement_manager import AchievementManager
+
+            manager = AchievementManager()
+
+            # 获取所有可见成就（排除未解锁的隐藏成就）
+            system = manager.system
+            if hasattr(system, 'get_visible_achievements'):
+                achievements = system.get_visible_achievements()
+            else:
+                achievements = manager.get_all_achievements()
+
+            # 按分类统计
+            unlocked_count = sum(1 for a in achievements if a.is_unlocked)
+            total_count = len(achievements)
+
+            # 构建消息
+            response = "🏆 成就一览 🏆\n"
+            response += f"━━━━━━━━━━━━━━━━\n"
+            response += f"已解锁：{unlocked_count}/{total_count}\n"
+            response += f"完成度：{unlocked_count / total_count * 100:.1f}%\n"
+            response += f"━━━━━━━━━━━━━━━━\n\n"
+
+            # 按分类显示
+            from ..core.achievement_system import AchievementCategory
+
+            for category in AchievementCategory:
+                cat_achievements = [a for a in achievements if a.category == category]
+                if cat_achievements:
+                    response += f"【{category.value}】\n"
+                    for ach in cat_achievements:
+                        status = "✅" if ach.is_unlocked else "❌"
+                        response += f"{status} {ach.name}\n"
+                        if ach.is_unlocked:
+                            response += f"   {ach.reward_description}\n"
+                        else:
+                            response += f"   {ach.unlock_condition}\n"
+                    response += "\n"
+
+            return BotResponse(
+                content=response,
+                message_type=MessageType.QUERY
+            )
+        except Exception as e:
+            return BotResponse(
+                content=f"查询成就失败：{str(e)}",
+                message_type=MessageType.QUERY
+            )
+
+    def _handle_progress_retreat(self, message: UserMessage) -> BotResponse:
+        """处理进度回退（玩家主动失败）"""
+        success, result_message = self.game_service.force_fail_turn(message.user_id)
+
+        return BotResponse(
+            content=result_message,
+            message_type=MessageType.GAME_ACTION,
+            should_mention=True
+        )
+
+    def _handle_reward_doubled(self, message: UserMessage, match: re.Match) -> BotResponse:
+        """处理翻倍奖励：领取（类型）奖励n*2"""
+        reward_type = match.group(1).strip()
+        multiplier = int(match.group(2))
+
+        # 调用游戏服务领取奖励（翻倍）
+        success, result_message = self.game_service.claim_reward(
+            message.user_id,
+            reward_type,
+            multiplier,
+            doubled=True
+        )
+
+        return BotResponse(
+            content=result_message,
+            message_type=MessageType.SCORE_REWARD,
             should_mention=True
         )
 

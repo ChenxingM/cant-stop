@@ -87,7 +87,7 @@ class PlayerManagementPanel(QWidget):
         add_layout.addWidget(self.new_player_name, 1, 1)
 
         self.new_player_faction = QComboBox()
-        self.new_player_faction.addItems(["收养人", "Aonreth"])
+        self.new_player_faction.addItems(["收养人", "Aeonreth"])
         add_layout.addWidget(QLabel("阵营:"), 2, 0)
         add_layout.addWidget(self.new_player_faction, 2, 1)
 

@@ -49,7 +49,7 @@ register <用户名> <阵营>
 示例：
 ```
 register 张三 收养人
-register 李四 Aonreth
+register 李四 Aeonreth
 ```
 
 ### 2. 开始游戏

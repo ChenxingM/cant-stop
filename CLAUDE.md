@@ -253,6 +253,6 @@ Always use `set PYTHONIOENCODING=utf-8` when running on Windows.
 
 Players choose one of two factions:
 - **收养人 (Adopter)** - `Faction.ADOPTER`
-- **Aonreth** - `Faction.AONRETH`
+- **Aeonreth** - `Faction.AONRETH`
 
 Faction is set during player registration and affects future game mechanics (currently mostly cosmetic but extensible for faction-specific features).
