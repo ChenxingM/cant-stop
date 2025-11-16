@@ -281,3 +281,93 @@ class EncounterHistoryDB(Base):
     selected_choice = Column(String(100), nullable=True)
     result = Column(Text, nullable=True)
     triggered_at = Column(DateTime, default=func.now())
+
+
+class TrapHistoryDB(Base):
+    """陷阱触发历史记录数据库模型"""
+    __tablename__ = 'trap_history'
+
+    history_id = Column(Integer, primary_key=True)
+    player_id = Column(String(50), ForeignKey('players.player_id'), nullable=False)
+    trap_name = Column(String(100), nullable=False)
+    column_number = Column(Integer, nullable=False)
+    position = Column(Integer, nullable=False)
+    result = Column(Text, nullable=True)
+    achievement_earned = Column(String(100), nullable=True)
+    triggered_at = Column(DateTime, default=func.now())
+
+    __table_args__ = (
+        CheckConstraint('column_number >= 3 AND column_number <= 18', name='check_trap_column_range'),
+        CheckConstraint('position >= 1', name='check_trap_position_positive'),
+    )
+
+
+class ShopTransactionDB(Base):
+    """商店交易记录数据库模型"""
+    __tablename__ = 'shop_transactions'
+
+    transaction_id = Column(Integer, primary_key=True)
+    player_id = Column(String(50), ForeignKey('players.player_id'), nullable=False)
+    transaction_type = Column(String(10), nullable=False)  # buy, sell
+    item_name = Column(String(100), nullable=False)
+    price = Column(Integer, nullable=False)
+    discount_applied = Column(Boolean, default=False)
+    discount_rate = Column(Integer, nullable=True)  # 折扣率(例如50表示半价)
+    timestamp = Column(DateTime, default=func.now())
+
+    __table_args__ = (
+        CheckConstraint("transaction_type IN ('buy', 'sell')", name='check_transaction_type'),
+    )
+
+
+class HiddenItemDB(Base):
+    """隐藏道具数据库模型"""
+    __tablename__ = 'hidden_items'
+
+    hidden_item_id = Column(Integer, primary_key=True)
+    player_id = Column(String(50), ForeignKey('players.player_id'), nullable=False)
+    item_name = Column(String(100), nullable=False)
+    item_description = Column(Text, nullable=True)
+    source = Column(String(100), nullable=True)  # 获得来源
+    acquired_at = Column(DateTime, default=func.now())
+    used = Column(Boolean, default=False)
+    used_at = Column(DateTime, nullable=True)
+
+
+class PlayerContractDB(Base):
+    """玩家契约关系数据库模型"""
+    __tablename__ = 'player_contracts'
+
+    contract_id = Column(Integer, primary_key=True)
+    ae_player_id = Column(String(50), ForeignKey('players.player_id'), nullable=False)
+    adopter_player_id = Column(String(50), ForeignKey('players.player_id'), nullable=False)
+    contract_type = Column(String(20), default='normal')  # normal, first_period
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+    ended_at = Column(DateTime, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('ae_player_id', 'adopter_player_id', name='uq_contract_pair'),
+    )
+
+
+class MapElementTriggerDB(Base):
+    """地图元素触发记录数据库模型"""
+    __tablename__ = 'map_element_triggers'
+
+    trigger_id = Column(Integer, primary_key=True)
+    player_id = Column(String(50), ForeignKey('players.player_id'), nullable=False)
+    element_type = Column(String(20), nullable=False)  # trap, item, encounter
+    element_id = Column(Integer, nullable=False)
+    element_name = Column(String(100), nullable=False)
+    column_number = Column(Integer, nullable=False)
+    position = Column(Integer, nullable=False)
+    first_trigger = Column(Boolean, default=True)  # 是否首次触发
+    trigger_count = Column(Integer, default=1)
+    triggered_at = Column(DateTime, default=func.now())
+
+    __table_args__ = (
+        CheckConstraint('column_number >= 3 AND column_number <= 18', name='check_trigger_column_range'),
+        CheckConstraint('position >= 1', name='check_trigger_position_positive'),
+        CheckConstraint("element_type IN ('trap', 'item', 'encounter')", name='check_element_type'),
+    )
